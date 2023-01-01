@@ -366,38 +366,37 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
         --[[ Auto Melee Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
 
+        --[[ Auto Melee Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
+
         if mAutoMelee:GetValue() and not sneakyboy then
-            local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
+            local players = entities.FindByClass("CTFPlayer")                              -- Create a table of all players in the game
             local medic = entities.GetLocalPlayer()
-            -- Loop through all the players on the team
-            for i, player in ipairs(players) do
-                local distance = (player:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
-                        -- Check if the player is a teammate and is damaged
-                        if player:GetTeamNumber() == medic:GetTeamNumber() then
-                            if player:GetHealth() < 0.92 * player:GetMaxHealth() and not pWeapon:IsMeleeWeapon() then
-                                -- Check if the player is within the distance limi
-                                client.Command("slot1", true)  -- Switch to the primary weapon
-                                -- Check if the player is an enemy and within the melee distance limit
+            local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
+            -- Check if the player is a teammate and is damaged
+            for k, vPlayer in pairs(players) do                                            -- For each player in the game
+                if vPlayer:IsValid() == false then goto continue end
+                local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
+                    if distance <= 400 and distance >= mMeleeDist:GetValue() then                       -- Check if each player is valid
+                        -- Check if the player is within the distance limit
+                        if distance <= mMeleeDist:GetValue() then
+                            -- Switch to slot 3
+                            client.Command("slot1", true) break 
+                        else if distance >= mMeleeDist:GetValue() and vPlayer:GetHealth() > 0.92 * vPlayer:GetMaxHealth() then
+                            -- Switch back to slot 2
+                            client.Command("slot2", true) break
+                        end
+
+                        if vPlayer:GetHealth() < 0.92 * vPlayer:GetMaxHealth() then
+                            if vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
+                                client.Command("slot3", true)
                                 break
-                            else
-                                if distance <= mMeleeDist:GetValue() then
-                                    -- Switch to the melee weapon
-                                    client.Command("slot3", true)
-                                    break
-                                else if player:GetHealth() > 0.92 * player:GetMaxHealth() then
-                                    -- Switch to the secondary weapon
-                                    client.Command("slot2", true)
-                                    break
-                                
-                                end
                             end
+                        end
+                        
                     end
                 end
             end
         end
-        
-        
-          
         
         
         --if
