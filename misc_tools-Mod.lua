@@ -29,7 +29,7 @@ local Removals = {           -- May be removed in the future
     ["HUD Texts"] = false    -- Button to remove HUD Texts
     }
 local Callouts = {                   -- Callouts are not yet fully implemented
-    ["Battle Cry Melee"] = false,    -- C2 when using melee and looking at enemy
+["Battle Cry Melee"] = false,    -- C2 when using melee and looking at enemy
     -- ["Medic!"] = false,           -- Call for medic when low on health (or spam it if there is no medic?)
     -- ["Yes"] = false,              -- Say "Yes" if someone nearby says No (lmao)
     -- ["No"] = false,               -- Say "No" at certain responses ("You are a spy", etc)
@@ -42,15 +42,19 @@ local Callouts = {                   -- Callouts are not yet fully implemented
     -- ["Nice Shot"] = false,        -- If a sniper nearby gets a headshot
     -- ["Good Job"] = false,         -- If a someone nearby gets a kill
 }
-
+local autoswitch_options = {
+    ["safe-mode"] = true,
+    ["Auto Melee"] = true,
+    ["Auto-crit-refill"] = true,
+    ["force Change"] = true,
+}  
 --[[ Varibles used for looping ]]--
 local LastExtenFreeze = 0  -- Spectator Mode
 local prTimer = 0          -- Timer for Random Ping
 local flTimer = 0          -- Timer for Fake Latency
-local c2Timer = 0          -- Timer for Battle Cry Melee raytracing
+local c2Timer = 0          -- Timer for Battle CryoWeaponmAutoweapon raytracing
 local c2Timer2 = 0         -- Timer for ^ to prevent spamming
 local mfTimer = 0          -- Timer for Medic Finder
-
 
 --[[ Menu ]]--
 local menu = MenuLib.Create("Misc Tools", MenuFlags.AutoSize)
@@ -61,34 +65,34 @@ menu.Style.Outline = true                 -- Outline around the menu
 local mCallouts         = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu WIP",   Callouts, ItemFlags.FullWidth))  -- Callouts
 local mLegJitter        = menu:AddComponent(MenuLib.Checkbox("Leg Jitter",             false))                          -- Leg Jitter
 --local mFastStop         = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)",      false))                          -- FastStop (Doesn't work yet)
-local mWFlip            = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       false))                          -- Auto Weapon Flip (Doesn't work yet)
+local mWFlip            = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                          -- Auto Weapon Flip (Doesn't work yet)
 local mRocketLines      = menu:AddComponent(MenuLib.Checkbox("Rocket Lines",           false))                          -- Rocket Lines
     menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
-    client.SetConVar("cl_wpn_sway_interp",              0)             -- Set cl_wpn_sway_interp to 0
+    client.SetConVar("cl_vWeapon_sway_interp",              0)             -- Set cl_vWeapon_sway_interp to 0
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)             -- Set cl_jiggle_bone_framerate_cutoff to 0
     client.SetConVar("cl_bobcycle",                     10000)         -- Set cl_bobcycle to 10000
 end, ItemFlags.FullWidth))
-local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("Retry When Stunned",     false))                          -- Retry When Stunned
+local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))                          -- Retry When Stunned
 local mRetryLowHP       = menu:AddComponent(MenuLib.Checkbox("Retry When Low HP",      false))                          -- Retry When Low HP
 local mRetryLowHPValue  = menu:AddComponent(MenuLib.Slider("Retry HP",                 1, 299, 30))                     -- Retry When Low HP Value
 local mLegitSpec        = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated",   false))                          -- Legit when Spectated
 local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only",      false))                          -- Legit when Spectated (Firstperson Only Toggle)
-local mAutoMelee        = menu:AddComponent(MenuLib.Checkbox("Auto weapon switch",      true))                          -- Auto Melee Switch
+local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Auto weapon switch",      true))
+local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
 local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow min health",    1, 100, 92))
-local mMeleeDist        = menu:AddComponent(MenuLib.Slider("Melee Switch Distance",    77, 500, 120))                 -- Auto Melee Switch Distance
+local oWeaponmAutoweaponDist        = menu:AddComponent(MenuLib.Slider("melee Switch Distance",    77, 500, 120))                 -- AutooWeaponmAutoweapon Switch Distance
 local mAutoFL           = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency",      false))                          -- Auto Fake Latency
 local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("AFL Activation Distance",    100, 700, 530))                  -- Auto Fake Latency Distance (530 is based on two players walking towards each other)
 local mAutoFLFar        = menu:AddComponent(MenuLib.Slider("AFL Far Value",         0, 1000, 0))                      -- What value to use when not in range (to keep ping consistant and not jumping around)
 local mAutoFLNear       = menu:AddComponent(MenuLib.Slider("AFL Close Value",        0, 1000, 700))                    -- Auto Fake Latency Near Value
-local mRandPing         = menu:AddComponent(MenuLib.Checkbox("Scoreboard ping",            true))                          -- Random Ping
+local mRandPing         = menu:AddComponent(MenuLib.Checkbox("Random ping",            true))                          -- Random Ping
 local mRandPingValue    = menu:AddComponent(MenuLib.Slider("Ping Randomness",          1, 15, 7))                       -- Random Ping Value
 local mRandLag          = menu:AddComponent(MenuLib.Checkbox("Random Fakelag",         false))                          -- Random Fakelag
 local mRandLagValue     = menu:AddComponent(MenuLib.Slider("Fakelag Randomness",       1, 200, 77))                     -- Random Fakelag Value
 local mRandLagMin       = menu:AddComponent(MenuLib.Slider("Fakelag Min",              1, 314, 177))                    -- Random Fakelag Minimum Value
 local mRandLagMax       = menu:AddComponent(MenuLib.Slider("Fakelag Max",              2, 315, 307))                    -- Random Fakelag Maximum Value
-local mChatNL           = menu:AddComponent(MenuLib.Checkbox("Allow \\n in chat",      false))                          -- Allow \\n in chat
-local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("Infinite Respawn Timer", false))                          -- Infinite Respawn Timer
-local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           false))                          -- Medic Finder
+local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("inffinite spectator time", false))                          -- Infinite Respawn Timer
+local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                          -- Medic Finder
 -- local mUberWarning      = menu:AddComponent(MenuLib.Checkbox("Uber Warning",     false))                          -- Medic Uber Warning (currently no way to check)
 -- local mRageSpecKill     = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false))                         -- fuck you "pizza pasta", stop spectating me
 local mRemovals         = menu:AddComponent(MenuLib.MultiCombo("Removals",             Removals, ItemFlags.FullWidth))  -- Remove RTD and HUD Texts
@@ -234,7 +238,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
         local pWeaponName     = pWeaponDef:GetName()                                 -- Set "pWeaponName" to the local "pWeapon"'s actual name
         if not pWeapon then return end                                               -- If "pWeapon" is not set, break
-    if (pWeapon == "CTFRocketLauncher") or (pWeaon == "CTFCannon") then        -- If the local player's active weapon is a projectile weapon (this doesn't work for some reason????)
+    if (pWeapon == "CTFRocketLauncher") or (pWeapon == "CTFCannon") then        -- If the local player's active weapon is a projectile weapon (this doesn't work for some reason????)
         pUsingProjectileWeapon  = true                                               -- Set "pUsingProjectileWeapon" to true
     else pUsingProjectileWeapon = false end                                          -- Set "pUsingProjectileWeapon" to false
 
@@ -303,7 +307,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                     if (gui.GetValue("auto sapper") ~= "off") then
                         SetOptionTemp("auto sapper", "legit")                                        -- If autosapper is enabled, set it to legit
                     end
-                    if (gui.GetValue("melee aimbot") ~= "off") then                                  -- If melee aimbot is enabled, set it to legit
+                    if (gui.GetValue("melee aimbot") ~= "off") then                                  -- IfoWeaponmAutoweapon aimbot is enabled, set it to legit
                         SetOptionTemp("melee aimbot", "legit")  
                     end
                     if (gui.GetValue("auto detonate sticky") ~= "off") then                          -- If autodetonate sticky is enabled, set it to legit
@@ -350,13 +354,13 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
 
-        --[[ Retry when stunned ]]-- (To prevent us from getting tauntkilled)
+        --[[ kill when stunned ]]-- (To prevent us from getting tauntkilled)
         if (mRetryStunned:GetValue() == true) then                                   -- If Retry when stunned is enabled
             if (pLocal:InCond(15)) then                                              -- If we are stunned (15 is TF_COND_STUNNED)
-                client.command("retry", true)                                        -- Reconnect to the server
+                client.command("kill", true)                                        -- Reconnect to the server
             elseif (pLocal:InCond(7)) and (distance <= 200)                          -- If we are laughing (7 is TF_COND_TAUNTING), and we're within 200hu of the player we are iterating through
                                       and (vWeaponName == "The Holiday Punch") then  -- and the enemy is using The Holiday Punch (untested)
-                client.command("retry", true)                                        -- Reconnect to the server
+                client.command("kill", true)                                        -- Reconnect to the server
             end
         end
 
@@ -367,19 +371,19 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         -- end
 
 
-        --[[ Auto Melee Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
+        --[[ AutooWeaponmAutoweapon Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
         --[[ work in progres auto crit refill
         local state = "slot2"
         local medic = entities.GetLocalPlayer()
         local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
         
-        if mAutoMelee:GetValue() and not sneakyboy then
+        if mAutoweapon:GetValue() and not sneakyboy then
             for k, vPlayer in pairs(players) do  -- For each player in the game
                 if not vPlayer:IsValid() then goto continue end
                 local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
         
-                if distance <= mMeleeDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
-                    if distance <= mMeleeDist:GetValue() then
+                if distance <= oWeaponmAutoweaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
+                    if distance <= oWeaponmAutoweaponDist:GetValue() then
                         state = "slot3"
                                 --charge critbucket when empty --
                             if vWeapon ~= nil then
@@ -418,30 +422,60 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         local state = "slot2"
         local medic = entities.GetLocalPlayer()
         local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
-        
-        if mAutoMelee:GetValue() and not sneakyboy then
+        local getlocalclass = medic:GetClass()
+        local attackstate = "-attack"
+        --if mWswitchoptions:IsSelected("AutoMelee") then
+        if sneakyboy then goto continue end
+        if mAutoweapon:GetValue() == true then
             for k, vPlayer in pairs(players) do  -- For each player in the game
                 if not vPlayer:IsValid() then goto continue end
                 local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
         
-                if distance <= mMeleeDist:GetValue() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
+                if distance <= oWeaponmAutoweaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
+                    if mWswitchoptions:IsSelected("Auto Melee") then
                     state = "slot3"
-                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
+                        if mWswitchoptions:IsSelected("Auto-crit-refill") then
+                            if vWeapon ~= nil then
+                                local critChance = vWeapon:GetCritChance()
+                                local dmgStats = vWeapon:GetWeaponDamageStats()
+                                local totalDmg = dmgStats["total"]
+                                local criticalDmg = dmgStats["critical"]
+                        
+                                -- (the + 0.1 is always added to the comparsion)
+                                local cmpCritChance = critChance + 0.1
+                        
+                                -- If we are allowed to crit
+                                if cmpCritChance > vWeapon:CalcObservedCritChance() then
+                                    attackstate = "-attack"
+                                else --refill
+                                    attackstate = "+attack"
+                                end
+                                client.Command(attackstate, true)
+                            end
+                        end
+                    end
+                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth()
+                    and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
                     state = "slot2"
-                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth() and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
-                    state = "slot1"
+                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth()
+                    and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
+                    if vWeapon:GetPropInt("m_iClip1") < 1 then
+                        -- wait until the primary weapon has fired
+                        state = "slot2"
+                    else
+                        state = "slot1"
+                    end
                 end
             end
         end
+
         client.Command(state, true)
-        
-        
         
         
         
 
         --[[
-        if mAutoMelee:GetValue() and not sneakyboy then
+        if mAutoweapon:GetValue() and not sneakyboy then
             local players = entities.FindByClass("CTFPlayer")                              -- Create a table of all players in the game
             local medic = entities.GetLocalPlayer()
             local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
@@ -449,12 +483,12 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
             for k, vPlayer in pairs(players) do                                            -- For each player in the game
                 if vPlayer:IsValid() == false then goto continue end
                 local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
-                    if distance <= 400 and distance >= mMeleeDist:GetValue() then                       -- Check if each player is valid
+                    if distance <= 400 and distance >= oWeaponmAutoweaponDist:GetValue() then                       -- Check if each player is valid
                         -- Check if the player is within the distance limit
-                        if distance <= mMeleeDist:GetValue() then
+                        if distance <= oWeaponmAutoweaponDist:GetValue() then
                             -- Switch to slot 3
                             client.Command("slot1", true) break 
-                        else if distance >= mMeleeDist:GetValue() and vPlayer:GetHealth() > 0.92 * vPlayer:GetMaxHealth() then
+                        else if distance >= oWeaponmAutoweaponDist:GetValue() and vPlayer:GetHealth() > 0.92 * vPlayer:GetMaxHealth() then
                             -- Switch back to slot 2
                             client.Command("slot2", true) break
                         end
@@ -477,7 +511,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         --end
 
         --[[ Auto Fake Latency ]]-- (Automatically enables fake latency depending on certain conditions)
-        if (mAutoFL:GetValue() == true) and (pWeapon:IsMeleeWeapon() == true)            -- If Auto Fake Latency is enabled, and we are using a melee weapon, and we are not invisible
+        if (mAutoFL:GetValue() == true) and (pWeapon:IoWeaponmAutoweaponWeapon() == true)            -- If Auto Fake Latency is enabled, and we are using aoWeaponmAutoweapon weapon, and we are not invisible
                                         and (sneakyboy == false) then                    
             if (distance <= mAutoFLDist:GetValue()) then                                 -- Check if we are within "mAutoFLDist" (set in the menu) of the enemy
                 if (gui.GetValue("fake latency") ~= 1) then                              -- If "fake latency" is not on, turn it on
@@ -504,8 +538,8 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         end
 
 
-        --[[ Auto C2 ]]-- (Automatically use "Battle Cry" when looking at an enemy with melee weapon (for special voicelines))
-        if mCallouts:IsSelected("Battle Cry Melee") and (pWeapon:IsMeleeWeapon() == true)                                 -- If we are using the Battle Cry Melee callout, and we are using a melee weapon
+        --[[ Auto C2 ]]-- (Automatically use "Battle Cry" when looking at an enemy withoWeaponmAutoweapon weapon (for special voicelines))
+        if mCallouts:IsSelected("Battle CryoWeaponmAutoweapon") and (pWeapon:IoWeaponmAutoweaponWeapon() == true)                                 -- If we are using the Battle CryoWeaponmAutoweapon callout, and we are using aoWeaponmAutoweapon weapon
                                                     and (sneakyboy == false) then                                         -- and we are not invisible
             c2Timer = c2Timer + 1                                                                                         -- Add 1 to the c2Timer
             c2Timer2 = c2Timer2 + 1                                                                                       -- Add 1 to the c2Timer2
@@ -663,7 +697,7 @@ local function OnStringCmd(stringCmd)  -- Called when a string command is sent
     local blockCmd = false             -- Set "blockCmd" to false
 
     --[[ Allow \n in chat ]]-- (This method is scuffed, but it works.)
-    if mChatNL:GetValue() == true then              -- If Chat New Line is enabled
+                 -- If Chat New Line is enabled
         cmd = cmd:gsub("\\n", "\n")                 -- Replace all instances of "\\n" with "\n"
         if cmd:find("say_team", 1, true) == 1 then  -- If the command is "say_team"
             cmd = cmd:sub(11, -2)                   -- Remove the first 11 characters ("say_team ") and the last 2 characters (");")
@@ -674,7 +708,6 @@ local function OnStringCmd(stringCmd)  -- Called when a string command is sent
             client.ChatSay(cmd)                     -- Send the modified command to the server
             blockCmd = true                         -- Execute the "blockCmd" function
         end
-    end
 
     --[[ Block Commands ]]-- 
     if blockCmd then       -- If "blockCmd" is triggered
