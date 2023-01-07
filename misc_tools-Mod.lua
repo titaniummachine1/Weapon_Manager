@@ -80,7 +80,7 @@ local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only"
 local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Auto weapon switch",      true))
 local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
 local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow min health",    1, 100, 92))
-local oWeaponmAutoweaponDist        = menu:AddComponent(MenuLib.Slider("melee Switch Distance",    77, 500, 120))                 -- AutooWeaponmAutoweapon Switch Distance
+local mAutoWeaponDist        = menu:AddComponent(MenuLib.Slider("melee Switch Distance",    77, 400, 157))                 -- AutooWeaponmAutoweapon Switch Distance
 local mAutoFL           = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency",      false))                          -- Auto Fake Latency
 local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("AFL Activation Distance",    100, 700, 530))                  -- Auto Fake Latency Distance (530 is based on two players walking towards each other)
 local mAutoFLFar        = menu:AddComponent(MenuLib.Slider("AFL Far Value",         0, 1000, 0))                      -- What value to use when not in range (to keep ping consistant and not jumping around)
@@ -382,8 +382,8 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                 if not vPlayer:IsValid() then goto continue end
                 local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
         
-                if distance <= oWeaponmAutoweaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
-                    if distance <= oWeaponmAutoweaponDist:GetValue() then
+                if distance <= mAutoWeaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
+                    if distance <= mAutoWeaponDist:GetValue() then
                         state = "slot3"
                                 --charge critbucket when empty --
                             if vWeapon ~= nil then
@@ -426,14 +426,15 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         local attackstate = "-attack"
         --if mWswitchoptions:IsSelected("AutoMelee") then
         if sneakyboy then goto continue end
-        if mAutoweapon:GetValue() == true then
+        if mAutoweapon:GetValue() == false then goto continue end
             for k, vPlayer in pairs(players) do  -- For each player in the game
-                if not vPlayer:IsValid() then goto continue end
-                local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
-        
-                if distance <= oWeaponmAutoweaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
+                local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
+                local distance   = distVector:Length()
+                if not vPlayer:IsValid() and q (distance > 400) then goto continue end
+                if distance <= mAutoWeaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
                     if mWswitchoptions:IsSelected("Auto Melee") then
                     state = "slot3"
+                    --[[
                         if mWswitchoptions:IsSelected("Auto-crit-refill") then
                             if vWeapon ~= nil then
                                 local critChance = vWeapon:GetCritChance()
@@ -451,24 +452,16 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                                     attackstate = "+attack"
                                 end
                                 client.Command(attackstate, true)
-                            end
-                        end
+                            end 
+                        end 
+                        --]]
                     end
-                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth()
-                    and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
+                elseif vPlayer:GetHealth() >= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
                     state = "slot2"
-                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth()
-                    and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
-                    if vWeapon:GetPropInt("m_iClip1") < 1 then
-                        -- wait until the primary weapon has fired
-                        state = "slot2"
-                    else
-                        state = "slot1"
-                    end
+                elseif vPlayer:GetHealth() <= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
+                    state = "slot1"
                 end
             end
-        end
-
         client.Command(state, true)
         
         
@@ -483,12 +476,12 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
             for k, vPlayer in pairs(players) do                                            -- For each player in the game
                 if vPlayer:IsValid() == false then goto continue end
                 local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
-                    if distance <= 400 and distance >= oWeaponmAutoweaponDist:GetValue() then                       -- Check if each player is valid
+                    if distance <= 400 and distance >= mAutoWeaponDist:GetValue() then                       -- Check if each player is valid
                         -- Check if the player is within the distance limit
-                        if distance <= oWeaponmAutoweaponDist:GetValue() then
+                        if distance <= mAutoWeaponDist:GetValue() then
                             -- Switch to slot 3
                             client.Command("slot1", true) break 
-                        else if distance >= oWeaponmAutoweaponDist:GetValue() and vPlayer:GetHealth() > 0.92 * vPlayer:GetMaxHealth() then
+                        else if distance >= mAutoWeaponDist:GetValue() and vPlayer:GetHealth() > 0.92 * vPlayer:GetMaxHealth() then
                             -- Switch back to slot 2
                             client.Command("slot2", true) break
                         end
