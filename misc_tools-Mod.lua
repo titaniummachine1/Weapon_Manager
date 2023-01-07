@@ -6,6 +6,10 @@
 --[[         SylveonBottle          ]]--
 --[[           Terminator           ]]--
 --[[(https://github.com/titaniummachine1/better-auto-wepaon-switch)]]--
+---@type boolean, LNXlib
+local libLoaded, Lib = pcall(require, "LNXlib")
+assert(libLoaded, "LNXlib not found, please install it!")
+assert(Lib.GetVersion() >= 0.89, "LNXlib version is too old, please update it!")
 
 local menuLoaded, MenuLib = pcall(require, "Menu")                                -- Load MenuLib
 assert(menuLoaded, "MenuLib not found, please install it!")                       -- If not found, throw error
@@ -91,7 +95,8 @@ local mRandLag          = menu:AddComponent(MenuLib.Checkbox("Random Fakelag",  
 local mRandLagValue     = menu:AddComponent(MenuLib.Slider("Fakelag Randomness",       1, 200, 77))                     -- Random Fakelag Value
 local mRandLagMin       = menu:AddComponent(MenuLib.Slider("Fakelag Min",              1, 314, 177))                    -- Random Fakelag Minimum Value
 local mRandLagMax       = menu:AddComponent(MenuLib.Slider("Fakelag Max",              2, 315, 307))                    -- Random Fakelag Maximum Value
-local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("inffinite spectator time", false))                          -- Infinite Respawn Timer
+local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("inffinite spectator time", false))  
+local msandwitchex     = menu:AddComponent(MenuLib.Checkbox("inffinite sandwich exploid", false))                        -- Infinite Respawn Timer
 local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                          -- Medic Finder
 -- local mUberWarning      = menu:AddComponent(MenuLib.Checkbox("Uber Warning",     false))                          -- Medic Uber Warning (currently no way to check)
 -- local mRageSpecKill     = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false))                         -- fuck you "pizza pasta", stop spectating me
@@ -129,8 +134,8 @@ local function CheckTempOptions()                                  -- When Check
     end
 end
 
-
 --[[ Code needed to run 66 times a second ]]--
+---@param userCmd UserCmd
 local function OnCreateMove(pCmd)                    -- Everything within this function will run 66 times a second
     ResetTempOptions()                               -- Immediately reset "TempOptions"
     local pLocal = entities.GetLocalPlayer()         -- Immediately set "pLocal" to the local player (entities.GetLocalPlayer)
@@ -423,38 +428,28 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         local medic = entities.GetLocalPlayer()
         local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
         local getlocalclass = medic:GetClass()
-        local attackstate = "-attack"
         --if mWswitchoptions:IsSelected("AutoMelee") then
         if sneakyboy then goto continue end
         if mAutoweapon:GetValue() == false then goto continue end
             for k, vPlayer in pairs(players) do  -- For each player in the game
                 local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
                 local distance   = distVector:Length()
-                if not vPlayer:IsValid() and q (distance > 400) then goto continue end
+                if not vPlayer:IsValid() and (distance > 400) then goto continue end
                 if distance <= mAutoWeaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
                     if mWswitchoptions:IsSelected("Auto Melee") then
                     state = "slot3"
-                    --[[
                         if mWswitchoptions:IsSelected("Auto-crit-refill") then
                             if vWeapon ~= nil then
                                 local critChance = vWeapon:GetCritChance()
-                                local dmgStats = vWeapon:GetWeaponDamageStats()
-                                local totalDmg = dmgStats["total"]
-                                local criticalDmg = dmgStats["critical"]
-                        
-                                -- (the + 0.1 is always added to the comparsion)
-                                local cmpCritChance = critChance + 0.1
-                        
                                 -- If we are allowed to crit
-                                if cmpCritChance > vWeapon:CalcObservedCritChance() then
-                                    attackstate = "-attack"
+                                if vWeapon:GetCritTokenBucket()  > 10 then
+                                    break
                                 else --refill
-                                    attackstate = "+attack"
+                                    pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)
                                 end
-                                client.Command(attackstate, true)
-                            end 
-                        end 
-                        --]]
+                                
+                            end
+                        end
                     end
                 elseif vPlayer:GetHealth() >= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
                     state = "slot2"
@@ -756,6 +751,32 @@ local function OnUnload()                                -- Called when the scri
     client.Command('play "ui/buttonclickrelease"', true) -- Play the "buttonclickrelease" sound
 end
 
+--[[inffinite sandwitch exploid]]
+
+
+local KeyHelper, Timer, WPlayer = Lib.Utils.KeyHelper, Lib.Utils.Timer, Lib.TF2.WPlayer
+local key = KeyHelper.new(KEY_J)
+local tauntTimer = Timer.new()
+
+        ---@param userCmd UserCmd
+        local function OnUserCmd(userCmd)
+                local localPlayer = WPlayer.GetLocal()
+                local weapon = localPlayer:GetActiveWeapon()
+                if not localPlayer:IsAlive()
+                    or not key:Down()
+                    or engine.IsGameUIVisible()
+                    or msandwitchex:GetValue() == false
+                    then return end
+                if weapon:IsShootingWeapon() or weapon:IsMeleeWeapon() then return end
+
+                userCmd:SetButtons(userCmd:GetButtons() | IN_ATTACK)
+
+                if tauntTimer:Run(0.5) then
+                    client.Command("taunt", true)
+                end
+        end
+    
+
 
 --[[ Unregister previous callbacks ]]--
 callbacks.Unregister("CreateMove", "MCT_CreateMove")            -- Unregister the "CreateMove" callback
@@ -763,6 +784,7 @@ callbacks.Unregister("SendStringCmd", "MCT_StringCmd")          -- Unregister th
 callbacks.Unregister("DispatchUserMessage", "MCT_UserMessage")  -- Unregister the "DispatchUserMessage" callback
 callbacks.Unregister("Unload", "MCT_Unload")                    -- Unregister the "Unload" callback
 callbacks.Unregister("Draw", "MCT_Draw")                        -- Unregister the "Draw" callback
+callbacks.Unregister("CreateMove", "LNX_IF_UserCmd")
 
 --[[ Register callbacks ]]--
 callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)             -- Register the "CreateMove" callback
@@ -770,6 +792,6 @@ callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)            -- 
 callbacks.Register("DispatchUserMessage", "MCT_UserMessage", OnUserMessage)  -- Register the "DispatchUserMessage" callback
 callbacks.Register("Unload", "MCT_Unload", OnUnload)                         -- Register the "Unload" callback
 callbacks.Register("Draw", "MCT_Draw", doDraw)                               -- Register the "Draw" callback
-
+callbacks.Register("CreateMove", "LNX_IF_UserCmd", OnUserCmd)
 --[[ Play sound when loaded ]]--
 client.Command('play "ui/buttonclick"', true) -- Play the "buttonclick" sound when the script is loaded
