@@ -368,6 +368,52 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
         --[[ Auto Melee Switch ]]-- (Automatically switches to slot3 when an enemy is in range)
+        --[[ work in progres auto crit refill
+        local state = "slot2"
+        local medic = entities.GetLocalPlayer()
+        local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
+        
+        if mAutoMelee:GetValue() and not sneakyboy then
+            for k, vPlayer in pairs(players) do  -- For each player in the game
+                if not vPlayer:IsValid() then goto continue end
+                local distance = (vPlayer:GetAbsOrigin() - medic:GetAbsOrigin()):Length()
+        
+                if distance <= mMeleeDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
+                    if distance <= mMeleeDist:GetValue() then
+                        state = "slot3"
+                                --charge critbucket when empty --
+                            if vWeapon ~= nil then
+                                local critChance = vWeapon:GetCritChance()
+                                -- (the + 0.1 is always added to the comparsion)
+                                local cmpCritChance = critChance + 0.1
+
+                                -- If we are allowed to crit
+                                if cmpCritChance > vWeapon:CalcObservedCritChance() then
+                                    client.Command("+attack", true)
+                                    client.Command("-attack", true)
+                                end
+
+                            end
+                    end
+                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth() and
+                    vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
+
+                    state = "slot2"
+                elseif vPlayer:GetHealth() <= mcrossbowhealth:GetValue() * 0.01 * vPlayer:GetMaxHealth() and
+                    vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() and (distance <= 400) then
+                        
+                        if vWeapon:GetPropInt("m_iClip1") < 1 then
+                            -- wait until the primary weapon has fired
+                            state = "slot2"
+                        else
+                            state = "slot1"
+                        end
+                        
+                end
+            end
+        end
+        client.Command(state, true)
+        --]]
 
         local state = "slot2"
         local medic = entities.GetLocalPlayer()
