@@ -428,6 +428,8 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         local medic = entities.GetLocalPlayer()
         local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
         local getlocalclass = medic:GetClass()
+        local weaponClipSizeMultiplier = vWeapon:AttributeHookFloat( "mult_clipsize" )
+        local KeyHelper, Timer, WPlayer = Lib.Utils.KeyHelper, Lib.Utils.Timer, Lib.TF2.WPlayer
         --if mWswitchoptions:IsSelected("AutoMelee") then
         if sneakyboy then goto continue end
         if mAutoweapon:GetValue() == false then goto continue end
@@ -442,19 +444,25 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                             if vWeapon ~= nil then
                                 local critChance = vWeapon:GetCritChance()
                                 -- If we are allowed to crit
-                                if vWeapon:GetCritTokenBucket()  > 10 then
+                                if vWeapon:GetCritTokenBucket() > 10 then
                                     break
                                 else --refill
                                     pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)
                                 end
-                                
                             end
                         end
                     end
                 elseif vPlayer:GetHealth() >= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
                     state = "slot2"
                 elseif vPlayer:GetHealth() <= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
-                    state = "slot1"
+                       -- (vWeapon.timeReload)
+                       
+                       --local clip = vWeapon:GetClip1()
+                       --if clip == 0 then
+                      --      state = "slot2"
+                      -- else
+                            state = "slot1"
+  
                 end
             end
         client.Command(state, true)
