@@ -5,7 +5,7 @@
 --[[     LNX (github.com/lnx00)     ]]--
 --[[         SylveonBottle          ]]--
 --[[           Terminator           ]]--
---[[(https://github.com/titaniummachine1/better-auto-wepaon-switch)]]--
+--[[  (github.com/titaniummachine1  ]]--
 ---@type boolean, LNXlib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
@@ -52,6 +52,12 @@ local autoswitch_options = {
     ["Auto-crit-refill"] = true,
     ["force Change"] = true,
 }  
+local autswitchClasses = {
+    ["Medic"] = true,
+    ["Soldier"] = true,
+    ["Pyro"] = true,
+    ["scout"] = true,
+}
 --[[ Varibles used for looping ]]--
 local LastExtenFreeze = 0  -- Spectator Mode
 local prTimer = 0          -- Timer for Random Ping
@@ -66,41 +72,44 @@ menu.Style.TitleBg = { 205, 95, 50, 255 } -- Title Background Color (Flame Pea)
 menu.Style.Outline = true                 -- Outline around the menu
 
 
-local mCallouts         = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu WIP",   Callouts, ItemFlags.FullWidth))  -- Callouts
-local mLegJitter        = menu:AddComponent(MenuLib.Checkbox("Leg Jitter",             false))                          -- Leg Jitter
+--local mCallouts         = menu:AddComponent(MenuLib.MultiCombo("Auto Voicemenu WIP",   Callouts, ItemFlags.FullWidth))  -- Callouts
+
 --local mFastStop         = menu:AddComponent(MenuLib.Checkbox("FastStop (Debug!)",      false))                          -- FastStop (Doesn't work yet)
-local mWFlip            = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                          -- Auto Weapon Flip (Doesn't work yet)
-local mRocketLines      = menu:AddComponent(MenuLib.Checkbox("Rocket Lines",           false))                          -- Rocket Lines
-    menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
+local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Auto weapon switch",      true))
+local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))
+local mWswitchclasses   = menu:AddComponent(MenuLib.MultiCombo("^Classes",             autswitchClasses, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
+local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow min health",    1, 100, 92))
+local mAutoWeaponDist   = menu:AddComponent(MenuLib.Slider("melee Switch Distance",    77, 400, 157))                 -- AutooWeaponmAutoweapon Switch Distances
+menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
     client.SetConVar("cl_vWeapon_sway_interp",              0)             -- Set cl_vWeapon_sway_interp to 0
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)             -- Set cl_jiggle_bone_framerate_cutoff to 0
     client.SetConVar("cl_bobcycle",                     10000)         -- Set cl_bobcycle to 10000
 end, ItemFlags.FullWidth))
-local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))                          -- Retry When Stunned
-local mRetryLowHP       = menu:AddComponent(MenuLib.Checkbox("Retry When Low HP",      false))                          -- Retry When Low HP
-local mRetryLowHPValue  = menu:AddComponent(MenuLib.Slider("Retry HP",                 1, 299, 30))                     -- Retry When Low HP Value
+local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))
+local WFlip             = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                           -- Auto Weapon Flip (Doesn't work yet)
+local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic Finder
 local mLegitSpec        = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated",   false))                          -- Legit when Spectated
 local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only",      false))                          -- Legit when Spectated (Firstperson Only Toggle)
-local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Auto weapon switch",      true))
-local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
-local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow min health",    1, 100, 92))
-local mAutoWeaponDist        = menu:AddComponent(MenuLib.Slider("melee Switch Distance",    77, 400, 157))                 -- AutooWeaponmAutoweapon Switch Distance
+local mLegJitter        = menu:AddComponent(MenuLib.Checkbox("Leg Jitter",             false))                          -- Leg Jitter
+local mRocketLines      = menu:AddComponent(MenuLib.Checkbox("Rocket Lines",           false))                          -- Rocket Lines                         -- suicide When Stunned
+local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("inffinite spectator time", false))
+local msandwitchex      = menu:AddComponent(MenuLib.Checkbox("inffinite sandwich exploid", false))                      -- Infinite Respawn Timer
+local mRetryLowHP       = menu:AddComponent(MenuLib.Checkbox("Retry When Low HP",      false))                          -- Retry When Low HP
+local mRetryLowHPValue  = menu:AddComponent(MenuLib.Slider("Retry HP",                 1, 299, 30))                     -- Retry When Low HP Value
 local mAutoFL           = menu:AddComponent(MenuLib.Checkbox("Auto Fake Latency",      false))                          -- Auto Fake Latency
-local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("AFL Activation Distance",    100, 700, 530))                  -- Auto Fake Latency Distance (530 is based on two players walking towards each other)
-local mAutoFLFar        = menu:AddComponent(MenuLib.Slider("AFL Far Value",         0, 1000, 0))                      -- What value to use when not in range (to keep ping consistant and not jumping around)
-local mAutoFLNear       = menu:AddComponent(MenuLib.Slider("AFL Close Value",        0, 1000, 700))                    -- Auto Fake Latency Near Value
-local mRandPing         = menu:AddComponent(MenuLib.Checkbox("Random ping",            true))                          -- Random Ping
-local mRandPingValue    = menu:AddComponent(MenuLib.Slider("Ping Randomness",          1, 15, 7))                       -- Random Ping Value
+local mAutoFLDist       = menu:AddComponent(MenuLib.Slider("AFL Activation Distance",    100, 700, 530))                -- Auto Fake Latency Distance (530 is based on two players walking towards each other)
+local mAutoFLFar        = menu:AddComponent(MenuLib.Slider("AFL Far Value",         0, 1000, 777))                      -- What value to use when not in range (to keep ping consistant and not jumping around)
+local mAutoFLNear       = menu:AddComponent(MenuLib.Slider("AFL Close Value",        0, 1000, 477))                     -- Auto Fake Latency Near Value                          -- Random Ping
+local mRandPingValue    = menu:AddComponent(MenuLib.Slider("Ping Randomness",          0, 15, 0))                       -- Random Ping Value
 local mRandLag          = menu:AddComponent(MenuLib.Checkbox("Random Fakelag",         false))                          -- Random Fakelag
 local mRandLagValue     = menu:AddComponent(MenuLib.Slider("Fakelag Randomness",       1, 200, 77))                     -- Random Fakelag Value
-local mRandLagMin       = menu:AddComponent(MenuLib.Slider("Fakelag Min",              1, 314, 177))                    -- Random Fakelag Minimum Value
-local mRandLagMax       = menu:AddComponent(MenuLib.Slider("Fakelag Max",              2, 315, 307))                    -- Random Fakelag Maximum Value
-local mExtendFreeze     = menu:AddComponent(MenuLib.Checkbox("inffinite spectator time", false))  
-local msandwitchex     = menu:AddComponent(MenuLib.Checkbox("inffinite sandwich exploid", false))                        -- Infinite Respawn Timer
-local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                          -- Medic Finder
+local mRandLagMin       = menu:AddComponent(MenuLib.Slider("Fakelag Min",              1, 314, 247))                    -- Random Fakelag Minimum Value
+local mRandLagMax       = menu:AddComponent(MenuLib.Slider("Fakelag Max",              2, 315, 315))                    -- Random Fakelag Maximum Value
+
+
 -- local mUberWarning      = menu:AddComponent(MenuLib.Checkbox("Uber Warning",     false))                          -- Medic Uber Warning (currently no way to check)
 -- local mRageSpecKill     = menu:AddComponent(MenuLib.Checkbox("Rage Spectator Killbind", false))                         -- fuck you "pizza pasta", stop spectating me
-local mRemovals         = menu:AddComponent(MenuLib.MultiCombo("Removals",             Removals, ItemFlags.FullWidth))  -- Remove RTD and HUD Texts
+--local mRemovals         = menu:AddComponent(MenuLib.MultiCombo("Removals",             Removals, ItemFlags.FullWidth))  -- Remove RTD and HUD Texts
 
 --[[ Options management ]]--
 local TempOptions = {}                                             -- Temp options
@@ -201,15 +210,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     end
 
     --[[ Random Ping ]]-- (Randomly enables Ping Reducer, preventing you from having a steady ping of 341 ping that never increases/descreases (suspicious))
-    if mRandPing:GetValue() == true then  
-        local localIndex = entities.GetLocalPlayer():GetIndex()
-        local ping = entities.GetPlayerResources():GetPropDataTableInt("m_iPing")[localIndex + 1]
-        if ping <= 90 then
-            gui.SetValue("ping reducer", 0)
-        else
-            gui.SetValue("ping reducer", 1)
-        end    
-                       -- If Random Ping is enabled
+    if mRandPingValue:GetValue() >= 1 then                     -- If Random Ping is enabled
         prTimer = prTimer +1                                 -- Increment the ping timer
         if (prTimer >= mRandPingValue:GetValue() * 66) then  -- Check if the ping timer is greater than "mRandPingValue" (set in the menu).
             prTimer = 0                                      -- Reset the ping timer
@@ -222,11 +223,9 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
             end
         end
     end
-    --[[ping reducer]]
 
- 
 
-    --[[ Anti RTD ]]-- (Stops certain RTD effects. May be removed in the future)
+    --[[ Anti RTD -- (Stops certain RTD effects. May be removed in the future)
     if mRemovals:IsSelected("RTD Effects") then                           -- If RTD Effects is selected
         if CurrentRTD == "Cursed" then                                    -- If the current RTD effect is "Cursed"
             pCmd:SetForwardMove(pCmd:GetForwardMove() * (-1))             -- Reverse the local player's W and S movement
@@ -235,7 +234,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
             --SetOptionTemp("norecoil", 1)                                -- Activate NoRecoil (bannable in community servers)
         end
     end
-
+    ]]--
 
     --[[ Features that require access to the weapon ]]--
         local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
@@ -256,7 +255,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     -- However, I am leaving this code here in case someone wants to see how it would have worked.
     -- I also don't want to ask for lbox to fix this in the telegram, because the last time I did that I got banned for 2 months.
     --[[ Auto weapon flip ]]-- (Automatically flips your rocket launcher to the left if it would travel farther)
-    if (mWFlip:GetValue() == true) then                                                                             -- If Auto weapon flip is enabled
+    if (WFlip:GetValue() == true) then                                                                             -- If Auto weapon flip is enabled
         if pUsingProjectileWeapon == true then                                                                            -- If the local player is using a projectile weapon
             local source      = pLocal:GetAbsOrigin() + pLocal:GetPropVector( "localdata", "m_vecViewOffset[0]" );  -- Set "source" to the local player's view offset
             local destination = source + engine.GetViewAngles():Forward() * 1000;                                   -- Find where the player is aiming
@@ -425,48 +424,59 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         --]]
 
         local state = "slot2"
-        local medic = entities.GetLocalPlayer()
         local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
-        local getlocalclass = medic:GetClass()
-        local weaponClipSizeMultiplier = vWeapon:AttributeHookFloat( "mult_clipsize" )
+        local LocalPlayer = entities.GetLocalPlayer()
         local KeyHelper, Timer, WPlayer = Lib.Utils.KeyHelper, Lib.Utils.Timer, Lib.TF2.WPlayer
+        
+        local hasmeleecrits = true
+        if pWeapon:GetCritTokenBucket() > 10 then
+            hasmeleecrits = true
+        else
+            hasmeleecrits = false
+        end
+        
         --if mWswitchoptions:IsSelected("AutoMelee") then
         if sneakyboy then goto continue end
         if mAutoweapon:GetValue() == false then goto continue end
+        --if (gui.GetValue("Weapon Switcher") ~= "off") then SetOptionTemp("Weapon Switcher", "off") end -- disable conficting switchers
             for k, vPlayer in pairs(players) do  -- For each player in the game
-                local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()            -- Set "distVector" to the distance between us and the player we are iterating through
+                local distVector = vPlayer:GetAbsOrigin() - pLocal:GetAbsOrigin()
                 local distance   = distVector:Length()
-                if not vPlayer:IsValid() and (distance > 400) then goto continue end
-                if distance <= mAutoWeaponDist:GetValue() and (vPlayer:GetTeamNumber() ~= medic:GetTeamNumber()) then
-                    if mWswitchoptions:IsSelected("Auto Melee") then
-                    state = "slot3"
-                        if mWswitchoptions:IsSelected("Auto-crit-refill") then
-                            if vWeapon ~= nil then
-                                local critChance = vWeapon:GetCritChance()
+                local minmeleedist = distance <= mAutoWeaponDist:GetValue()
+                --local playerClass = lplayer:GetPlayerClass()
+                local clip = pWeapon:GetWeaponData("IN_RELOAD")
+                local minhealth = vPlayer:GetHealth() <= (vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue())
+                local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
+                local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
+                local Mode = "Medbot"
+                local cooldown = Timer.new()
+                local reloading = false
+                --and clip == 1
+                --pWeapon:IsMeleeWeapon() == true
+                if not vPlayer:IsValid() and (distance >= 500) then goto continue end
+                --if mWswitchclasses:IsSelected("Medic") and PlayerClass == 7 then
+                    if minmeleedist and not myteam then
+                        if mWswitchoptions:IsSelected("Auto Melee") then
+                            state = "slot3"
                                 -- If we are allowed to crit
-                                if vWeapon:GetCritTokenBucket() > 10 then
-                                    break
-                                else --refill
-                                    pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)
+                                if pWeapon:GetCritTokenBucket() <= 10 then
+                                    pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
                                 end
-                            end
                         end
+                    elseif not minhealth and not myteam then
+                        state = "slot2"
+                    elseif minhealth and myteam then
+                        state = "slot1"
                     end
-                elseif vPlayer:GetHealth() >= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() ~= medic:GetTeamNumber() then
-                    state = "slot2"
-                elseif vPlayer:GetHealth() <= vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue() and vPlayer:GetTeamNumber() == medic:GetTeamNumber() then
-                       -- (vWeapon.timeReload)
-                       
-                       --local clip = vWeapon:GetClip1()
-                       --if clip == 0 then
-                      --      state = "slot2"
-                      -- else
-                            state = "slot1"
-  
-                end
+                --[[elseif not playerClass == 7 then ent_fire !picker Addoutput "health 99"
+                    
+                    elseif vweapon:IsMeleeWeapon() then
+                       -- state = ("lastinv")
+                    end
+                    ]]--
+                --end
             end
         client.Command(state, true)
-        
         
         
 
@@ -535,7 +545,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
 
         --[[ Auto C2 ]]-- (Automatically use "Battle Cry" when looking at an enemy withoWeaponmAutoweapon weapon (for special voicelines))
-        if mCallouts:IsSelected("Battle CryoWeaponmAutoweapon") and (pWeapon:IoWeaponmAutoweaponWeapon() == true)                                 -- If we are using the Battle CryoWeaponmAutoweapon callout, and we are using aoWeaponmAutoweapon weapon
+        if (pWeapon:IsMeleeWeapon() == true)                          -- If we are using the Battle CryoWeaponmAutoweapon callout, and we are using aoWeaponmAutoweapon weapon
                                                     and (sneakyboy == false) then                                         -- and we are not invisible
             c2Timer = c2Timer + 1                                                                                         -- Add 1 to the c2Timer
             c2Timer2 = c2Timer2 + 1                                                                                       -- Add 1 to the c2Timer2
@@ -738,11 +748,11 @@ local function OnUserMessage(userMsg)  -- Called when a user message is received
         CurrentRTD = "" -- Reset the current RTD if RTD Effects is disabled
     end
 
-    --[[ Removals: Hud Text ]]-- (Remove the hud text of bad RTD effects)
+    --[[ Removals: Hud Text  (Remove the hud text of bad RTD effects)
     if mRemovals:IsSelected("HUD Texts") then                                                    -- If HUD Texts is enabled
         if userMsg:GetID() == HudText or userMsg:GetID() == HudMsg then blockMessage = true end  -- If the message is "HudText" or "HudMsg", block the message
     end
-
+    ]]--s
     --[[ Block messages ]]--
     if blockMessage then                        -- If "blockMessage" is triggered
         local msgLength = userMsg:GetDataBits() -- Set "msgLength" to the message length in bits
@@ -774,6 +784,7 @@ local tauntTimer = Timer.new()
                     or not key:Down()
                     or engine.IsGameUIVisible()
                     or msandwitchex:GetValue() == false
+                    or playerClass ~= 5
                     then return end
                 if weapon:IsShootingWeapon() or weapon:IsMeleeWeapon() then return end
 
