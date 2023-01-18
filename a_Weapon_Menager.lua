@@ -79,6 +79,7 @@ menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable We
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)             -- Set cl_jiggle_bone_framerate_cutoff to 0
     client.SetConVar("cl_bobcycle",                     10000)         -- Set cl_bobcycle to 10000
 end, ItemFlags.FullWidth))
+local mcriticalhealthesp = menu:AddComponent(MenuLib.Slider("low hp priority",    0, 100, 0))
 local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))
 local WFlip             = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                           -- Auto Weapon Flip (Doesn't work yet)
 local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic Finder
@@ -455,7 +456,26 @@ end
 end
 --[[command execution from weapon manager]]--
 client.Command(state, true)
+
 -- ent_fire !picker Addoutput "health 99"
+
+local procent = mcriticalhealthesp:GetValue() * 0.01
+--gamecoordinator.IsConnectedToMatchServer() and
+if procent > 0 then
+
+    for i, p in ipairs( players ) do
+        
+        Ratio = (p:GetHealth() / p:GetMaxHealth())
+        
+        if (p:IsAlive()) and (Ratio <= procent) then
+            playerlist.SetPriority( p, 1 )
+        else
+            playerlist.SetPriority( p, 0 )
+        end
+    
+    end
+
+end
 
         --[[ Auto Fake Latency ]]-- (Automatically enables fake latency depending on certain conditions)
         if (mAutoFL:GetValue() == true) and (pWeapon:IoWeaponmAutoweaponWeapon() == true)            -- If Auto Fake Latency is enabled, and we are using aoWeaponmAutoweapon weapon, and we are not invisible
