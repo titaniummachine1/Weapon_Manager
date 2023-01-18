@@ -1,11 +1,15 @@
 --[[                                ]]--
---[[     Misc Tools for Lmaobox     ]]--
+--[[    Weapon Manager for Lmaobox  ]]--
 --[[            Modded              ]]--
 --[[          --Authors--           ]]--
---[[     LNX (github.com/lnx00)     ]]--
---[[         SylveonBottle          ]]--
 --[[           Terminator           ]]--
 --[[  (github.com/titaniummachine1  ]]--
+--[[    credit to thoose people     ]]--
+--[[                                ]]--
+--[[      LNX (github.com/lnx00)    ]]--
+--[[             Muqa1              ]]--
+--[[   https://github.com/Muqa1     ]]--
+--[[         SylveonBottle          ]]--
 ---@type boolean, LNXlib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
@@ -415,7 +419,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
     --if mWswitchoptions:IsSelected("AutoMelee") then
 if sneakyboy then goto continue end
-if mAutoweapon:GetValue() == false then goto continue end
+if mAutoweapon:GetValue() == true then
 local closestPlayer = nil
 local closestDistance = math.huge
 for i, vPlayer in pairs(players) do  -- For each player in the game
@@ -456,7 +460,7 @@ end
 end
 --[[command execution from weapon manager]]--
 client.Command(state, true)
-
+end
 -- ent_fire !picker Addoutput "health 99"
 
 local procent = mcriticalhealthesp:GetValue() * 0.01
@@ -475,6 +479,14 @@ if procent > 0 then
     
     end
 
+else
+        if procent == 0 then
+            for i, p in ipairs( players ) do
+                if playerlist.GetPriority(p) == 1 then
+                    playerlist.SetPriority( p, 0 )
+            end
+        end
+    end
 end
 
         --[[ Auto Fake Latency ]]-- (Automatically enables fake latency depending on certain conditions)
