@@ -13,7 +13,7 @@
 ---@type boolean, LNXlib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
-assert(Lib.GetVersion() >= 0.89, "LNXlib version is too old, please update it!")
+assert(Lib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
 
 local menuLoaded, MenuLib = pcall(require, "Menu")                                -- Load MenuLib
 assert(menuLoaded, "MenuLib not found, please install it!")                       -- If not found, throw error
@@ -54,7 +54,7 @@ local autoswitch_options = {
     ["safe-mode"] = true,
     ["Self Defence"] = true,
     ["Auto-crit-refill"] = true,
-    ["force Change"] = true,
+    ["allow-manual"] = true,
 }
 --[[ Varibles used for looping ]]--
 local LastExtenFreeze = 0  -- Spectator Mode
@@ -76,7 +76,7 @@ menu.Style.Outline = true                 -- Outline around the menu
 local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Weapon Manager",      true))
 local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))
 --local mWswitchclasses   = menu:AddComponent(MenuLib.MultiCombo("^Classes",             autswitchClasses, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
-local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow health",    1, 100, 92))
+local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow health",    1, 100, 75))
 local mAutoWeaponDist   = menu:AddComponent(MenuLib.Slider("Melee Distance",    0, 400, 97))                 -- AutooWeaponmAutoweapon Switch Distances
 menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
     client.SetConVar("cl_vWeapon_sway_interp",              0)             -- Set cl_vWeapon_sway_interp to 0
@@ -142,6 +142,7 @@ local function CheckTempOptions()                                  -- When Check
         end
     end
 end
+
 
 --[[ Code needed to run 66 times a second ]]--
 ---@param userCmd UserCmd
@@ -419,45 +420,49 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
 
     --if mWswitchoptions:IsSelected("AutoMelee") then
 if sneakyboy then goto continue end
-if mAutoweapon:GetValue() == true then
-local closestPlayer = nil
-local closestDistance = math.huge
-for i, vPlayer in pairs(players) do  -- For each player in the game
-local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
-local automelee = mWswitchoptions:IsSelected("Self Defence")
-local clip = pWeapon:GetPropInt("m_iClip1")
+    if mAutoweapon:GetValue() == true then
+        local closestPlayer = nil
+        local closestDistance = math.huge
 
-local minhealth = vPlayer:GetHealth() <= (vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue())
-local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
-local distVector = LocalPlayer:GetAbsOrigin() - vPlayer:GetAbsOrigin()
-local distance = distVector:Length()
-local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange)
-local shots_to_fill_bucket = 0
-if is_melee then
-    shots_to_fill_bucket = math.ceil(bucket_max / added_per_shot)
-end
-if distance < closestDistance then
-    closestPlayer = vPlayer
-    closestDistance = distance
-end
-if not myteam and not meleedist then
-    state = "slot1"
-elseif meleedist and not myteam then
-    if mWswitchoptions:IsSelected("Self Defence") then
-        state = "slot3"
-            -- If we are allowed to crit
-            if pWeapon:GetCritTokenBucket() <= 7.5 then
-                pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
+        for i, vPlayer in pairs(players) do  -- For each player in the game
+        local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
+        local automelee = mWswitchoptions:IsSelected("Self Defence")
+        local clip = pWeapon:GetPropInt("m_iClip1")
+
+        local minhealth = vPlayer:GetHealth() <= (vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue())
+        local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
+        local distVector = LocalPlayer:GetAbsOrigin() - vPlayer:GetAbsOrigin()
+        local distance = distVector:Length()
+        local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange)
+        local shots_to_fill_bucket = 0
+
+        if is_melee then
+            shots_to_fill_bucket = math.ceil(bucket_max / added_per_shot)
+        end
+
+        if distance < closestDistance then
+            closestPlayer = vPlayer
+            closestDistance = distance
+        end
+
+        if not myteam and not meleedist then
+            state = "slot1"
+        elseif meleedist and not myteam then
+            if mWswitchoptions:IsSelected("Self Defence") then
+                state = "slot3"
+                    -- If we are allowed to crit
+                    if pWeapon:GetCritTokenBucket() <= 7.5 then
+                        pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
+                    end
+                    break
             end
-            break
+            elseif not minhealth and myteam then
+                state = "slot2"
+            elseif minhealth and myteam then
+                state = "slot1"
+                break
+            end
     end
-elseif not minhealth and myteam then
-    state = "slot2"
-elseif minhealth and myteam then
-    state = "slot1"
-    break
-end
-end
 --[[command execution from weapon manager]]--
 client.Command(state, true)
 end
@@ -544,30 +549,25 @@ end
 local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
 --[[ Code called every frame ]]--
 local function doDraw() 
-    if engine.Con_IsVisible() or engine.IsGameUIVisible() then
-        return
-    end
+if mRocketLines:GetValue() == true then
+    local rockets = entities.FindByClass("CTFProjectile_Rocket")
+    for i, rocket in pairs(rockets) do 
+        local rocketPos = rocket:GetAbsOrigin()
+        local rocketVel = rocket:EstimateAbsVelocity()
+        local rocketDest = vector.Add(rocketPos, rocketVel)
+        local rocketTrace = engine.TraceLine(rocketPos, rocketDest, MASK_SHOT_HULL)
+        local hitPos = rocketTrace.endpos
+        local rocketScreenPos = client.WorldToScreen(rocketPos)
+        local hitPosScreen = client.WorldToScreen(hitPos)
 
-
-
-    --[[ Rocket Lines ]]-- (Shows trajectory of rockets (kinda bugged but works))
-    if mRocketLines:GetValue() then -- If "Rocket Lines" is enabled
-        local rockets = entities.FindByClass("CTFProjectile_Rocket") -- Find all rockets
-        for i, rocket in pairs(rockets) do                          -- Loop through all rockets
-
-            local rocketPos = rocket:GetAbsOrigin()               -- Set "rocketPos" to the rocket's position
-            local rocketScreenPos = client.WorldToScreen(rocketPos) -- Set "rocketScreenPos" to the x/z coordinates of the rocket's position based on the player's screen
-            local rocketDest = vector.Add(rocketPos, rocket:EstimateAbsVelocity()) -- Set "rocketDest" to the rocket's estimated direction based on the rocket's estimated velocity (this should probably be replaced with the rocket's direction)
-            local rocketTrace = engine.TraceLine(rocketPos, rocketDest, MASK_SHOT_HULL) -- Trace a line from the rocket's position to the rocket's estimated direction until it hits something
-            local hitPosScreen = client.WorldToScreen(rocketTrace.endpos) -- Set "hitPosScreen" to the x/z coordinates of the trace's hit position based on the player's screen
-
-            draw.Color(255, 0, 0, 255) -- Set the color to red
-            -- if type(exp) == "table" then printLuaTable(exp) else print( table.concat( {exp}, '\n' ) )
-            draw.Line(rocketScreenPos[1], rocketScreenPos[2], hitPosScreen[1], hitPosScreen[2]) --Draw a line from the rocket to the trace's hit position
-            draw.Line(rocketScreenPos[1] + 1, rocketScreenPos[2] + 1 , hitPosScreen[1] + 1, hitPosScreen[2]) --Used to make lines thicker (could probably be removed)
+        if rocketScreenPos[1] ~= nil and rocketScreenPos[2] ~= nil and hitPosScreen[1] ~= nil and hitPosScreen[2] ~= nil then
+            draw.Color(255, 0, 0, 255)
+            draw.Line(rocketScreenPos[1], rocketScreenPos[2], hitPosScreen[1], hitPosScreen[2])
+            draw.Line(rocketScreenPos[1] + 1, rocketScreenPos[2] + 1 , hitPosScreen[1] + 1, hitPosScreen[2])
             draw.Line(rocketScreenPos[1] - 1, rocketScreenPos[2] - 1 , hitPosScreen[1] - 1, hitPosScreen[2])
         end
     end
+end
 
     
     local players = entities.FindByClass("CTFPlayer")
@@ -774,7 +774,6 @@ callbacks.Unregister("DispatchUserMessage", "MCT_UserMessage")  -- Unregister th
 callbacks.Unregister("Unload", "MCT_Unload")                    -- Unregister the "Unload" callback
 callbacks.Unregister("Draw", "MCT_Draw")                        -- Unregister the "Draw" callback
 callbacks.Unregister("CreateMove", "LNX_IF_UserCmd")
-
 --[[ Register callbacks ]]--
 callbacks.Register("CreateMove", "MCT_CreateMove", OnCreateMove)             -- Register the "CreateMove" callback
 callbacks.Register("SendStringCmd", "MCT_StringCmd", OnStringCmd)            -- Register the "SendStringCmd" callback
