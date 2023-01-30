@@ -53,6 +53,7 @@ local Callouts = {                   -- Callouts are not yet fully implemented
 local autoswitch_options = {
     ["safe-mode"] = true,
     ["Self Defence"] = true,
+    ["Auto_Combo"] = true,
     ["Auto-crit-refill"] = true,
     ["allow-manual"] = true,
 }
@@ -404,6 +405,23 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     local bucket
     local bucket_current = pWeapon:GetCritTokenBucket()
     local shots_to_fill_bucket = 0 -- these value don't modify once calculated
+    local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
+    --[[ class ids are aperantly allocates as the order they have been added to game.
+    heres new allocation 
+    1 = scout
+    2 = sniper
+    3 = soldier
+    4 = demoman
+    5 = Medic
+    6 = heavy
+    7 = pyro
+    8 = spy
+    9 = engeener
+    ]]
+    local cond_Melee = nil
+    local cond_secodnary = nil
+    local cond_primary = nil
+    local cond_selfdefence = nil
 
     --local primaryWeapon = pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
     --local secondaryWeapon = pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_SECONDARY )
@@ -425,7 +443,6 @@ if sneakyboy then goto continue end
         local closestDistance = math.huge
 
         for i, vPlayer in pairs(players) do  -- For each player in the game
-        local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
         local automelee = mWswitchoptions:IsSelected("Self Defence")
         local clip = pWeapon:GetPropInt("m_iClip1")
 
@@ -436,6 +453,48 @@ if sneakyboy then goto continue end
         local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange)
         local shots_to_fill_bucket = 0
 
+        -- check class and adjust settings (this mess hurts my eyes :( )
+        if mWswitchoptions:IsSelected("Auto_Combo") then
+            if PlayerClass == 5 then
+                -- medic class
+                cond_Melee = not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence")
+                cond_secodnary = not minhealth and myteam
+                cond_primary = minhealth and myteam and not arrowed
+                cond_selfdefence = not myteam and not meleedist and mWswitchoptions:IsSelected("Self Defence")
+
+            elseif PlayerClass == 1 then
+                --scout class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+
+            elseif PlayerClass == 6 then
+                -- heavy class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+
+            elseif PlayerClass == 2 then
+                -- sniper class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+
+            elseif PlayerClass == 3 then
+                -- soldier class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+
+            elseif PlayerClass == 9 then
+                -- engeener class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+
+            else
+                --every other class
+                cond_Melee = meleedist and not myteam
+                cond_primary = not myteam and not meleedist
+            end
+        end
+
+
         if is_melee then
             shots_to_fill_bucket = math.ceil(bucket_max / added_per_shot)
         end
@@ -445,20 +504,18 @@ if sneakyboy then goto continue end
             closestDistance = distance
         end
 
-        if not myteam and not meleedist then
+        if cond_selfdefence then
             state = "slot1"
-        elseif meleedist and not myteam then
-            if mWswitchoptions:IsSelected("Self Defence") then
+        elseif cond_Melee then
                 state = "slot3"
                     -- If we are allowed to crit
                     if pWeapon:GetCritTokenBucket() <= 7.5 then
                         pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
                     end
-                    break
-            end
-            elseif not minhealth and myteam then
+                break
+            elseif cond_secodnary then
                 state = "slot2"
-            elseif minhealth and myteam then
+            elseif cond_primary then
                 state = "slot1"
                 break
             end
