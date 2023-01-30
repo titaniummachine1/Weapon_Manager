@@ -54,8 +54,9 @@ local autoswitch_options = {
     ["safe-mode"] = true,
     ["Self Defence"] = true,
     ["Auto_Combo"] = true,
-    ["Auto-crit-refill"] = true,
+    ["Auto-Crit-Refill"] = true,
     ["allow-manual"] = true,
+    ["AutoDT"] = true,
 }
 --[[ Varibles used for looping ]]--
 local LastExtenFreeze = 0  -- Spectator Mode
@@ -88,6 +89,7 @@ local mcriticalhealthesp = menu:AddComponent(MenuLib.Slider("low hp priority",  
 local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))
 local WFlip             = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                           -- Auto Weapon Flip (Doesn't work yet)
 local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic Finder
+--local mspeedhack      = menu:AddComponent(MenuLib.Checkbox("speedhack",           true))                           -- speedhack
 local mLegitSpec        = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated",   false))                          -- Legit when Spectated
 local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only",      false))                          -- Legit when Spectated (Firstperson Only Toggle)
 local mLegJitter        = menu:AddComponent(MenuLib.Checkbox("Leg Jitter",             false))                          -- Leg Jitter
@@ -300,7 +302,20 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
         --local vWeaponName     = vWeaponDef:GetName()                               -- Set "vWeaponName" to the local "vWeapon"'s actual name (doesn't work for some reason)
     end
 
+    --speedhack 
+    --[[
+    local speedhack_enabled
 
+    if mspeedhack == true and speedhack_enabled == false then
+        client.Command("host_framerate", "65")
+        speedhack_enabled = true
+    elseif mspeedhack == false and speedhack_enabled == true then
+        client.Command("host_framerate", "0")
+        speedhack_enabled = false
+    end
+    ]]--
+      
+      
 
 
     local sneakyboy = false                       -- Create a new variable for if we're invisible or not, set it to false
@@ -389,22 +404,22 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                 --if (gui.GetValue("Weapon Switcher") ~= "off") then SetOptionTemp("Weapon Switcher", "off") end -- disable conficting switchers
 
     --[[----------------------- WEAPON MANAGER -----------------------------------------]]
-
+    local manualstate
     local state = "slot2"
     local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
     local LocalPlayer = entities.GetLocalPlayer()
     local KeyHelper, Timer, WPlayer = Lib.Utils.KeyHelper, Lib.Utils.Timer, Lib.TF2.WPlayer
-    local added_per_shot, bucket_current, crit_fired
+   -- local added_per_shot, bucket_current, crit_fired
     local is_melee                  = pWeapon:IsMeleeWeapon()
-    local tf_weapon_criticals       = client.GetConVar('tf_weapon_criticals')
-    local tf_weapon_criticals_melee = client.GetConVar('tf_weapon_criticals_melee')
+    --local tf_weapon_criticals       = client.GetConVar('tf_weapon_criticals')
+   -- local tf_weapon_criticals_melee = client.GetConVar('tf_weapon_criticals_melee')
     local bucket_max                = client.GetConVar('tf_weapon_criticals_bucket_cap')
     local added_per_shot            = pWeapon:GetWeaponBaseDamage()
-    local bucket_current            = pWeapon:GetCritTokenBucket()
-    local crit_fired                = pWeapon:GetCritSeedRequestCount()
-    local bucket
-    local bucket_current = pWeapon:GetCritTokenBucket()
-    local shots_to_fill_bucket = 0 -- these value don't modify once calculated
+    --local bucket_current            = pWeapon:GetCritTokenBucket()
+    --local crit_fired                = pWeapon:GetCritSeedRequestCount()
+    --local bucket
+    --local bucket_current = pWeapon:GetCritTokenBucket()
+    --local shots_to_fill_bucket = 0 -- these value don't modify once calculated
     local PlayerClass = LocalPlayer:GetPropInt("m_iClass")
     --[[ class ids are aperantly allocates as the order they have been added to game.
     heres new allocation 
@@ -444,8 +459,8 @@ if sneakyboy then goto continue end
 
         for i, vPlayer in pairs(players) do  -- For each player in the game
         local automelee = mWswitchoptions:IsSelected("Self Defence")
-        local clip = pWeapon:GetPropInt("m_iClip1")
-
+       -- local clip = player:GetPropDataTableInt("m_iAmmo")
+       -- print( clip )
         local minhealth = vPlayer:GetHealth() <= (vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue())
         local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
         local distVector = LocalPlayer:GetAbsOrigin() - vPlayer:GetAbsOrigin()
@@ -494,7 +509,6 @@ if sneakyboy then goto continue end
             end
         end
 
-
         if is_melee then
             shots_to_fill_bucket = math.ceil(bucket_max / added_per_shot)
         end
@@ -504,14 +518,20 @@ if sneakyboy then goto continue end
             closestDistance = distance
         end
 
+        local chargedelay = Timer.new()
+
         if cond_selfdefence then
             state = "slot1"
         elseif cond_Melee then
                 state = "slot3"
                     -- If we are allowed to crit
-                    if pWeapon:GetCritTokenBucket() <= 7.5 then
+                    if pWeapon:GetCritTokenBucket() <= 7.5 and mWswitchoptions:IsSelected("Auto-Crit-Refill") then
                         pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
+                        if mWswitchoptions:IsSelected("AutoDT") and (warp.GetChargedTicks() == 0) and chargedelay:Run(5)then
+                            warp.TriggerCharge()
+                        end
                     end
+
                 break
             elseif cond_secodnary then
                 state = "slot2"
@@ -519,9 +539,12 @@ if sneakyboy then goto continue end
                 state = "slot1"
                 break
             end
-    end
+        end
 --[[command execution from weapon manager]]--
 client.Command(state, true)
+end
+if not vPlayer then
+    LocalPlayer.TriggerCharge()
 end
 -- ent_fire !picker Addoutput "health 99"
 
