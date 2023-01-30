@@ -4,7 +4,6 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 ## Requirements
 - [nxlib](https://github.com/lnx00/Lmaobox-Library/releases/tag/v0.90)
 - [Menu](https://github.com/lnx00/Lmaobox-LUA/blob/main/Menu.lua)
-- 
 ## images
 
 ![Weapon Manager Screenshot](https://i.imgur.com/bVMorQp.png)
