@@ -7,20 +7,20 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 - [Menu](https://github.com/lnx00/Lmaobox-LUA/blob/main/Menu.lua)
 
 # Setup
-- put all 2 files from Requirements to your (%localappdata%) Folder
-- put (A_Weapon_Manager.lua) in (%localappdata% folder
+- put all 2 files from Requirements to your `%localappdata%` Folder
+- put (A_Weapon_Manager.lua) in `%localappdata%` folder
 - run lmaobox beta
 
 # (if you don't have Beta)
-- create `.bat` file in same directory as lmaobox.exe you downloaded
+- create `.bat` file in same directory as lmaobox.exe
 - rightclick and click edit
-- put inside start `Lmaobox file name`:.exe -beta
+- put inside start `Lmaobox file name`.exe -beta
 - save file
 - run.
 
 # progress status
 
-project halted for next 4 weeks
+project `halted` for next 4 weeks
 
 # Full Changelog
 - [Changes](https://github.com/titaniummachine1/Weapon_Manager/compare/v2.0.0-stable...v2.1.0-unstable-beta)
