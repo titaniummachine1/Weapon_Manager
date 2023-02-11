@@ -1,15 +1,17 @@
 --[[                                ]]--
 --[[    Weapon Manager for Lmaobox  ]]--
---[[            Modded              ]]--
+--[[      (Modded misc-tools)       ]]--
 --[[          --Authors--           ]]--
 --[[           Terminator           ]]--
 --[[  (github.com/titaniummachine1  ]]--
---[[    credit to thoose people     ]]--
 --[[                                ]]--
+--[[    credit to thoose people     ]]--
 --[[      LNX (github.com/lnx00)    ]]--
 --[[             Muqa1              ]]--
 --[[   https://github.com/Muqa1     ]]--
 --[[         SylveonBottle          ]]--
+--[[recomended config: 23d740e39153 ]]--
+
 ---@type boolean, LNXlib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
@@ -79,7 +81,7 @@ local mAutoweapon       = menu:AddComponent(MenuLib.Checkbox("Weapon Manager",  
 local mWswitchoptions   = menu:AddComponent(MenuLib.MultiCombo("^Settings",             autoswitch_options, ItemFlags.FullWidth))
 --local mWswitchclasses   = menu:AddComponent(MenuLib.MultiCombo("^Classes",             autswitchClasses, ItemFlags.FullWidth))                          -- AutooWeaponmAutoweapon Switch
 local mcrossbowhealth   = menu:AddComponent(MenuLib.Slider("crossbow health",    1, 100, 75))
-local mAutoWeaponDist   = menu:AddComponent(MenuLib.Slider("Melee Distance",    0, 400, 97))                 -- AutooWeaponmAutoweapon Switch Distances
+local mAutoWeaponDist   = menu:AddComponent(MenuLib.Slider("Melee Distance",    -50, 300, 250))                 -- AutooWeaponmAutoweapon Switch Distances
 menu:AddComponent(MenuLib.Button("Disable Weapon Sway", function() -- Disable Weapon Sway (Executes commands)
     client.SetConVar("cl_vWeapon_sway_interp",              0)             -- Set cl_vWeapon_sway_interp to 0
     client.SetConVar("cl_jiggle_bone_framerate_cutoff", 0)             -- Set cl_jiggle_bone_framerate_cutoff to 0
@@ -88,7 +90,11 @@ end, ItemFlags.FullWidth))
 local mcriticalhealthesp = menu:AddComponent(MenuLib.Slider("low hp priority",    0, 100, 0))
 local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunned",     true))
 local WFlip             = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                           -- Auto Weapon Flip (Doesn't work yet)
-local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic Finder
+local Swingpred       = menu:AddComponent(MenuLib.Checkbox("Swing Prediction",           true))
+local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic 
+local walkbot           = menu:AddComponent(MenuLib.Checkbox("walk-bot",   false))
+local circlestrafebot   = menu:AddComponent(MenuLib.Checkbox("strafe-bot",   false))
+local Rangecircle       = menu:AddComponent(MenuLib.Checkbox("speed indicator",           false))
 --local mspeedhack      = menu:AddComponent(MenuLib.Checkbox("speedhack",           true))                           -- speedhack
 local mLegitSpec        = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated",   false))                          -- Legit when Spectated
 local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only",      false))                          -- Legit when Spectated (Firstperson Only Toggle)
@@ -146,7 +152,7 @@ local function CheckTempOptions()                                  -- When Check
     end
 end
 
-
+local myfont = draw.CreateFont( "Verdana", 16, 800 )
 --[[ Code needed to run 66 times a second ]]--
 ---@param userCmd UserCmd
 local function OnCreateMove(pCmd)                    -- Everything within this function will run 66 times a second
@@ -307,14 +313,13 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     local speedhack_enabled
 
     if mspeedhack == true and speedhack_enabled == false then
-        client.Command("host_framerate", "65")
+       client.SetConVar("host_framerate", 5)
         speedhack_enabled = true
     elseif mspeedhack == false and speedhack_enabled == true then
-        client.Command("host_framerate", "0")
+        client.SetConVar("host_framerate", 0)
         speedhack_enabled = false
     end
-    ]]--
-      
+      ]]--
       
 
 
@@ -433,80 +438,118 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     8 = spy
     9 = engeener
     ]]
-    local cond_Melee = nil
-    local cond_secodnary = nil
-    local cond_primary = nil
-    local cond_selfdefence = nil
+    local cond_Melee
+    local cond_secodnary
+    local cond_primary
+    local cond_selfdefence
 
     --local primaryWeapon = pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
     --local secondaryWeapon = pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_SECONDARY )
     --local meleeWeapon = pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
    --local Localclass = pLocal:GetTeamNumber()
     --local touching = 69
-    local swingrange = 89
+    swingrange = 89
 
     --local shouldmelee = true
     --local safe = true
     --local incombat = false
     --local safemode = true
+    
 
 
     --if mWswitchoptions:IsSelected("AutoMelee") then
 if sneakyboy then goto continue end
+
     if mAutoweapon:GetValue() == true then
         local closestPlayer = nil
         local closestDistance = math.huge
 
         for i, vPlayer in pairs(players) do  -- For each player in the game
         local automelee = mWswitchoptions:IsSelected("Self Defence")
+      -- Swing Prediction
+
+        local speedPerTick = distance - previousDistance
+        local tickRate = 66 -- This is the tick rate of the game
+        closingSpeed = (speedPerTick * tickRate)
+        relativespeed = closingSpeed * -1
+        previousDistance = distance
+        if relativespeed ~= 0 then
+            relativeSpeed = math.floor(relativespeed)
+        end
+        --swing prediction
+
+        estime = distance / relativespeed
+        -- estimated hit time
+
+        if estime <= 0.26 and relativespeed > 0 then
+            if Swingpred:GetValue() == true and not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence") then
+            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK) -- attack
+            end
+        end
+        if estime <= 0.2 then
+            moveride = 100
+        else
+            moveride = 0
+        end
+        
+      
+
        -- local clip = player:GetPropDataTableInt("m_iAmmo")
        -- print( clip )
         local minhealth = vPlayer:GetHealth() <= (vPlayer:GetMaxHealth() * 0.01 * mcrossbowhealth:GetValue())
         local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
         local distVector = LocalPlayer:GetAbsOrigin() - vPlayer:GetAbsOrigin()
         local distance = distVector:Length()
-        local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange)
+        local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange + moveride)
         local shots_to_fill_bucket = 0
 
+
+          
+          
+          
+        
         -- check class and adjust settings (this mess hurts my eyes :( )
         if mWswitchoptions:IsSelected("Auto_Combo") then
             if PlayerClass == 5 then
                 -- medic class
                 cond_Melee = not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence")
                 cond_secodnary = not minhealth and myteam
-                cond_primary = minhealth and myteam and not arrowed
+                cond_primary = not meleedist and minhealth and myteam and not arrowed
                 cond_selfdefence = not myteam and not meleedist and mWswitchoptions:IsSelected("Self Defence")
 
             elseif PlayerClass == 1 then
                 --scout class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
 
             elseif PlayerClass == 6 then
                 -- heavy class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
 
             elseif PlayerClass == 2 then
                 -- sniper class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
 
             elseif PlayerClass == 3 then
                 -- soldier class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
 
             elseif PlayerClass == 9 then
                 -- engeener class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
 
             else
                 --every other class
-                cond_Melee = meleedist and not myteam
-                cond_primary = not myteam and not meleedist
+                cond_Melee = meleedist and not myteam and not pLocal
+                cond_primary = not myteam and not meleedist and not pLocal
             end
+        else
+            cond_Melee = meleedist and not myteam and not pLocal
+            cond_primary = not myteam and not meleedist 
         end
 
         if is_melee then
@@ -518,26 +561,40 @@ if sneakyboy then goto continue end
             closestDistance = distance
         end
 
-        local chargedelay = Timer.new()
+
+
 
         if cond_selfdefence then
             state = "slot1"
+            if walkbot:GetValue() == true then
+            pCmd:SetForwardMove(500)
+            end
+            if circlestrafebot:GetValue() == true then
+                pCmd:SetSideMove(-200)
+            end
+            break
         elseif cond_Melee then
                 state = "slot3"
+                    if walkbot:GetValue() == true then
+                    pCmd:SetForwardMove(600)
+                    end
+                    if circlestrafebot:GetValue() == true then
+                        pCmd:SetSideMove(200)
+                        end
                     -- If we are allowed to crit
                     if pWeapon:GetCritTokenBucket() <= 7.5 and mWswitchoptions:IsSelected("Auto-Crit-Refill") then
                         pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
-                        if mWswitchoptions:IsSelected("AutoDT") and (warp.GetChargedTicks() == 0) and chargedelay:Run(5)then
+                        if mWswitchoptions:IsSelected("AutoDT") and (warp.GetChargedTicks() == 0) then
                             warp.TriggerCharge()
                         end
                     end
 
                 break
-            elseif cond_secodnary then
-                state = "slot2"
             elseif cond_primary then
                 state = "slot1"
                 break
+            elseif cond_secodnary  then
+                state = "slot2"
             end
         end
 --[[command execution from weapon manager]]--
@@ -628,7 +685,7 @@ end
 
 local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
 --[[ Code called every frame ]]--
-local function doDraw() 
+local function doDraw()
 if mRocketLines:GetValue() == true then
     local rockets = entities.FindByClass("CTFProjectile_Rocket")
     for i, rocket in pairs(rockets) do 
@@ -745,8 +802,43 @@ end
         if (mfTimer > 12 * 66) then                                                                                                            -- Remove the cross after 12 seconds (isn't this fps-based? on 144hz monitors, 66 = 5.5 seconds. In that case, this may show longer than it should for others)
             mfTimer = 0
         end
-    end
 
+        --speed indicator and range circle
+        
+
+        if engine.Con_IsVisible() or engine.IsGameUIVisible() then
+            return
+        end
+    
+        local players = entities.FindByClass("CTFPlayer")
+        local pLocal = entities.GetLocalPlayer()
+        if pLocal:IsAlive() and Rangecircle:GetValue() == true then
+          local screenPos = client.WorldToScreen(pLocal:GetAbsOrigin())
+          if screenPos ~= nil then
+            draw.SetFont(myfont)
+            draw.Color(255, 255, 255, 255)
+            if relativeSpeed == nil or relativeSpeed == -1 then
+                relativeSpeed = 0
+            end
+            str1 = tostring(relativeSpeed)
+
+            draw.Text(screenPos[1], screenPos[2], str1)
+        
+            local x, y = screenPos[1], screenPos[2]
+            local radius = (relativeSpeed % 20.2 + 69)
+            local segments = 9
+            local prevx, prevy = x + radius, y
+        
+            for i = 1, segments do
+              local angle = (i / segments) * math.pi * 2
+              local newx = x + math.cos(angle) * radius
+              local newy = y + math.sin(angle) * radius
+              draw.Line(math.floor(prevx), math.floor(prevy), math.floor(newx), math.floor(newy))
+              prevx, prevy = newx, newy
+            end
+            end
+        end
+    end
 end
 
 
