@@ -12,9 +12,9 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 - run lmaobox beta
 
 # (if you don't have Beta)
-- create .bat file in same directory as lmaobox.exe you downloaded
+- create `.bat` file in same directory as lmaobox.exe you downloaded
 - rightclick and click edit
-- put inside start "Lmaobox file name:.exe -beta
+- put inside start `Lmaobox file name`:.exe -beta
 - save file
 - run.
 
