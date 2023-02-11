@@ -18,6 +18,9 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 - save file
 - run.
 
+# progress status
+
+project halted for next 4 weeks
 
 # Full Changelog
 - [Changes](https://github.com/titaniummachine1/Weapon_Manager/compare/v2.0.0-stable...v2.1.0-unstable-beta)
