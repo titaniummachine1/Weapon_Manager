@@ -10,6 +10,7 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 - put all 2 files from Requirements to your (%localappdata%) Folder
 - put (A_Weapon_Manager.lua) in (%localappdata% folder
 - run lmaobox beta
+- 
 # (if you dotn have Beta)
 - create .bat file in same directory as lmaobox.exe you downloaded
 - rightclick and click edit
