@@ -468,28 +468,35 @@ if sneakyboy then goto continue end
         local automelee = mWswitchoptions:IsSelected("Self Defence")
       -- Swing Prediction
 
-        local speedPerTick = distance - previousDistance
-        local tickRate = 66 -- This is the tick rate of the game
-        closingSpeed = (speedPerTick * tickRate)
-        relativespeed = closingSpeed * -1
-        previousDistance = distance
-        if relativespeed ~= 0 then
-            relativeSpeed = math.floor(relativespeed)
-        end
-        --swing prediction
+         -- Swing Prediction
 
-        estime = distance / relativespeed
-        -- estimated hit time
-
-        if estime <= 0.26 and relativespeed > 0 then
-            if Swingpred:GetValue() == true and not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence") then
-            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK) -- attack
-            end
-        end
+         previousDistance = previousDistance or 0
+         local speedPerTick = distance - previousDistance
+         local tickRate = 66 -- This is the tick rate of the game
+         local closingSpeed = (speedPerTick * tickRate)
+         local relativespeed = closingSpeed * -1
+         previousDistance = distance
+         if relativespeed ~= 0 then
+             relativeSpeed = math.floor(relativespeed)
+         end
+         --swing prediction
+         estime = distance / relativeSpeed
+         -- estimated hit time
+         
         if estime <= 0.2 then
             moveride = 100
         else
             moveride = 0
+        end
+
+        if relativeSpeed == nil or relativeSpeed == -1 then
+            relativeSpeed = 0
+        end
+        if relativeSpeed > 2000 then
+            relativespeed = 0
+        end
+        if relativeSpeed < 0 then
+            relativespeed = 0
         end
         
       
@@ -561,6 +568,11 @@ if sneakyboy then goto continue end
             closestDistance = distance
         end
 
+        if estime <= 0.25 and estime > 0 then
+            if Swingpred:GetValue() == true and not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence") then
+            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK) -- attack
+            end
+        end
 
 
 
@@ -572,7 +584,6 @@ if sneakyboy then goto continue end
             if circlestrafebot:GetValue() == true then
                 pCmd:SetSideMove(-200)
             end
-            break
         elseif cond_Melee then
                 state = "slot3"
                     if walkbot:GetValue() == true then
@@ -817,9 +828,7 @@ end
           if screenPos ~= nil then
             draw.SetFont(myfont)
             draw.Color(255, 255, 255, 255)
-            if relativeSpeed == nil or relativeSpeed == -1 then
-                relativeSpeed = 0
-            end
+
             str1 = tostring(relativeSpeed)
 
             draw.Text(screenPos[1], screenPos[2], str1)
