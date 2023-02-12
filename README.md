@@ -3,15 +3,14 @@ A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, 
 
 [![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/titaniummachine1/Weapon_Manager/blob/main/a_Weapon_Menager.lua)
 
-
-(https://github.com/titaniummachine1/Weapon_Manager/blob/main/a_Weapon_Menager.lua)]
-
 ## Requirements
 - [nxlib]
-(https://github.com/lnx00/Lmaobox-Library/releases/tag/v0.95.2)]
+- [![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/lnx00/Lmaobox-Library/releases/tag/v0.95.2)
 
 - [Menu]
-(https://github.com/lnx00/Lmaobox-LUA/blob/main/Menu.lua)]
+- [![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/lnx00/Lmaobox-LUA/blob/main/Menu.lua)
+
+
 
 # Setup
 - put all 2 files from Requirements to your `%localappdata%` Folder
