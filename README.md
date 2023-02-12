@@ -19,6 +19,7 @@ How To run Lmaobox Beta:
   1. Create a .bat file in the same directory as lmaobox.exe.
   2. Right-click the .bat file and click "edit".
   3. Put "Lmaobox file name.exe -beta" inside the file, save, and run it.
+  4. it should look simular > (start `Lmaobox file name`.exe -beta)
 
 
 # (if you don't have Beta)
