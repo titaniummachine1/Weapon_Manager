@@ -1,3 +1,4 @@
+https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white 
 # Weapon Menager
 A modified misc_tools.lua with a working auto-weapon switch, and more. It's intended for use with medbots, vaccinator, and crossbow, and new modules will be added in the future.
 
