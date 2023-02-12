@@ -15,9 +15,8 @@ A modified misc_tools.lua with a working auto-weapon switch, and more. It's inte
 # Setup
 Put all required files in your %localappdata% folder.
 
-To run Lmaobox Beta:
-  1. Run Lmaobox Beta directly.
-  2. If you don't have Beta, create a .bat file in the same directory as lmaobox.exe.
+How To run Lmaobox Beta:
+  2. Create a .bat file in the same directory as lmaobox.exe.
   3. Right-click the .bat file and click "edit".
   4. Put "Lmaobox file name.exe -beta" inside the file, save, and run it.
 
