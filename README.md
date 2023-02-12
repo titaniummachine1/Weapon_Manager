@@ -1,5 +1,5 @@
 # Weapon Menager
-A modified `misc_tools.lua` with a working auto-weapon switch for HvH purposes, and more. It's primarily intended for use with medbots, vaccinator, and crossbow, and new modules will be added in the future, such as an AutoCombo mainly for Soldier and Pyro classes.
+A modified misc_tools.lua with a working auto-weapon switch, and more. It's intended for use with medbots, vaccinator, and crossbow, and new modules will be added in the future.
 
 
 [![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/titaniummachine1/Weapon_Manager/blob/main/a_Weapon_Menager.lua) - [![GitHub Downloads](https://img.shields.io/github/downloads/titaniummachine1/Weapon_Manager/total.svg)](https://github.com/titaniummachine1/Weapon_Manager/releases)
