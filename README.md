@@ -13,9 +13,14 @@ A modified misc_tools.lua with a working auto-weapon switch, and more. It's inte
 
 
 # Setup
-- put all 2 files from Requirements to your `%localappdata%` Folder
-- put (A_Weapon_Manager.lua) in `%localappdata%` folder
-- run lmaobox beta
+Put all required files in your %localappdata% folder.
+
+To run Lmaobox Beta:
+  1. Run Lmaobox Beta directly.
+  2. If you don't have Beta, create a .bat file in the same directory as lmaobox.exe.
+  3. Right-click the .bat file and click "edit".
+  4. Put "Lmaobox file name.exe -beta" inside the file, save, and run it.
+
 
 # (if you don't have Beta)
 - create `.bat` file in same directory as lmaobox.exe
