@@ -23,7 +23,7 @@ How To run Lmaobox Beta:
 
 # progress status
 
-Project `halted` for the next 4 weeks
+2023.03.09 progres continues.
 
 # Full Changelog
 - [Changes](https://github.com/titaniummachine1/Weapon_Manager/compare/v2.0.0-stable...v2.1.0-unstable-beta)
