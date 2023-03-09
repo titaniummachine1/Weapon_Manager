@@ -92,9 +92,9 @@ local mRetryStunned     = menu:AddComponent(MenuLib.Checkbox("suicide when stunn
 local WFlip             = menu:AddComponent(MenuLib.Checkbox("Auto Weapon Flip",       true))                           -- Auto Weapon Flip (Doesn't work yet)
 local Swingpred       = menu:AddComponent(MenuLib.Checkbox("Swing Prediction",           true))
 local mMedicFinder      = menu:AddComponent(MenuLib.Checkbox("Medic Finder",           true))                           -- Medic 
-local walkbot           = menu:AddComponent(MenuLib.Checkbox("walk-bot",   false))
-local circlestrafebot   = menu:AddComponent(MenuLib.Checkbox("strafe-bot",   false))
-local Rangecircle       = menu:AddComponent(MenuLib.Checkbox("speed indicator",           false))
+local walkbot           = menu:AddComponent(MenuLib.Checkbox("Desperado",   false))
+local circlestrafebot   = menu:AddComponent(MenuLib.Checkbox("Desperado Strafe",   false))
+--local Rangecircle       = menu:AddComponent(MenuLib.Checkbox("speed indicator",           true))
 --local mspeedhack      = menu:AddComponent(MenuLib.Checkbox("speedhack",           true))                           -- speedhack
 local mLegitSpec        = menu:AddComponent(MenuLib.Checkbox("Legit when Spectated",   false))                          -- Legit when Spectated
 local mLegitSpecFP      = menu:AddComponent(MenuLib.Checkbox("^Firstperson Only",      false))                          -- Legit when Spectated (Firstperson Only Toggle)
@@ -260,6 +260,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     ]]--
 
     --[[ Features that require access to the weapon ]]--
+    if pLocal:IsAlive() == false then return end
         local pWeapon         = pLocal:GetPropEntity( "m_hActiveWeapon" )            -- Set "pWeapon" to the local player's active weapon
         local pWeaponDefIndex = pWeapon:GetPropInt( "m_iItemDefinitionIndex" )       -- Set "pWeaponDefIndex" to the "pWeapon"'s item definition index
         local pWeaponDef      = itemschema.GetItemDefinitionByID( pWeaponDefIndex )  -- Set "pWeaponDef" to the local "pWeapon"'s item definition
@@ -409,7 +410,7 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
                 --if (gui.GetValue("Weapon Switcher") ~= "off") then SetOptionTemp("Weapon Switcher", "off") end -- disable conficting switchers
 
     --[[----------------------- WEAPON MANAGER -----------------------------------------]]
-    local manualstate
+    --local manualstate
     local state = "slot2"
     local players = entities.FindByClass("CTFPlayer")  -- Create a table of all players in the game
     local LocalPlayer = entities.GetLocalPlayer()
@@ -460,46 +461,48 @@ local function OnCreateMove(pCmd)                    -- Everything within this f
     --if mWswitchoptions:IsSelected("AutoMelee") then
 if sneakyboy then goto continue end
 
-    if mAutoweapon:GetValue() == true then
         local closestPlayer = nil
         local closestDistance = math.huge
 
         for i, vPlayer in pairs(players) do  -- For each player in the game
-        local automelee = mWswitchoptions:IsSelected("Self Defence")
-      -- Swing Prediction
+            local automelee = mWswitchoptions:IsSelected("Self Defence")
+            if not vPlayer:IsAlive() or vPlayer:IsDormant() then break end
 
          -- Swing Prediction
-
-         previousDistance = previousDistance or 0
-         local speedPerTick = distance - previousDistance
-         local tickRate = 66 -- This is the tick rate of the game
-         local closingSpeed = (speedPerTick * tickRate)
-         local relativespeed = closingSpeed * -1
-         previousDistance = distance
-         if relativespeed ~= 0 then
-             relativeSpeed = math.floor(relativespeed)
-         end
-         --swing prediction
-         estime = distance / relativeSpeed
-         -- estimated hit time
-         
-        if estime <= 0.2 then
-            moveride = 100
-        else
-            moveride = 0
+        if Swingpred:GetValue() then
+            local tickRate = 66 -- This is the tick rate of the game
+            local speedPerTick = distance - (previousDistance or 0)
+            local closingSpeed = speedPerTick * tickRate
+            local relativeSpeed = -closingSpeed
+            
+            -- Check if relative speed is not zero
+            if relativeSpeed ~= 0 then
+                -- Round down relative speed to nearest integer
+                relativeSpeed = math.floor(relativeSpeed)
+            end
+            
+            -- Calculate estimated hit time
+            local estime = 0
+            if relativeSpeed ~= 0 then
+                estime = distance / relativeSpeed
+            end
+            
+           
+            
+            -- Check if relative speed is greater than 2000
+            if math.abs(relativeSpeed) > 2000 then
+                relativeSpeed = 0
+            end
+            
+            -- Check if estimated hit time is within range, enemy is not on the same team, and melee distance
+            if estime > 0 and estime <= 0.25 and not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence") then
+                -- Set attack button
+                pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)
+            end
+            
+            previousDistance = distance
         end
 
-        if relativeSpeed == nil or relativeSpeed == -1 then
-            relativeSpeed = 0
-        end
-        if relativeSpeed > 2000 then
-            relativespeed = 0
-        end
-        if relativeSpeed < 0 then
-            relativespeed = 0
-        end
-        
-      
 
        -- local clip = player:GetPropDataTableInt("m_iAmmo")
        -- print( clip )
@@ -507,10 +510,16 @@ if sneakyboy then goto continue end
         local myteam = (vPlayer:GetTeamNumber() == LocalPlayer:GetTeamNumber())
         local distVector = LocalPlayer:GetAbsOrigin() - vPlayer:GetAbsOrigin()
         local distance = distVector:Length()
-        local meleedist = distance < (mAutoWeaponDist:GetValue() + swingrange + moveride)
+                -- Calculate dynamicswitch
+        local dynamicSwitch = 1
+        if estime and estime <= 0.75 then
+            dynamicSwitch = 77
+        else
+            dynamicSwitch = 1
+        end
+        meleedist = distance <= (mAutoWeaponDist:GetValue() + swingrange + dynamicSwitch)
+
         local shots_to_fill_bucket = 0
-
-
           
           
           
@@ -520,10 +529,9 @@ if sneakyboy then goto continue end
             if PlayerClass == 5 then
                 -- medic class
                 cond_Melee = not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence")
-                cond_secodnary = not minhealth and myteam
-                cond_primary = not meleedist and minhealth and myteam and not arrowed
+                cond_secodnary = myteam and not meleedist and not minhealth
+                cond_primary = myteam and not meleedist and minhealth -- and not arrowed
                 cond_selfdefence = not myteam and not meleedist and mWswitchoptions:IsSelected("Self Defence")
-
             elseif PlayerClass == 1 then
                 --scout class
                 cond_Melee = meleedist and not myteam and not pLocal
@@ -556,7 +564,7 @@ if sneakyboy then goto continue end
             end
         else
             cond_Melee = meleedist and not myteam and not pLocal
-            cond_primary = not myteam and not meleedist 
+            cond_primary = not myteam and not meleedist
         end
 
         if is_melee then
@@ -568,49 +576,71 @@ if sneakyboy then goto continue end
             closestDistance = distance
         end
 
-        if estime <= 0.25 and estime > 0 then
-            if Swingpred:GetValue() == true and not myteam and meleedist and mWswitchoptions:IsSelected("Self Defence") then
-            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK) -- attack
+
+        -- Check if swing prediction is enabled 
+        local doubleTapTriggered = false
+        if estime and estime > 0 and estime <= 0.25 and cond_Melee then
+            -- Set attack button
+            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)
+            if not doubleTapTriggered then
+            warp.TriggerDoubleTap()
+            doubleTapTriggered = true
+            else 
+                doubleTapTriggered = false
             end
         end
 
+    -- desperado run
+    if walkbot:GetValue() then
+        pCmd:SetForwardMove(500)
+    end
+    if circlestrafebot:GetValue() then
+        pCmd:SetSideMove(-200)
+    end
 
+    if not mAutoweapon:GetValue() then break end -- only activate logic if clicked button
 
-        if cond_selfdefence then
+    local state -- define variable outside of if statements
+
+    if cond_selfdefence then
+        if not meleedist then
             state = "slot1"
-            if walkbot:GetValue() == true then
-            pCmd:SetForwardMove(500)
-            end
-            if circlestrafebot:GetValue() == true then
-                pCmd:SetSideMove(-200)
-            end
-        elseif cond_Melee then
-                state = "slot3"
-                    if walkbot:GetValue() == true then
-                    pCmd:SetForwardMove(600)
-                    end
-                    if circlestrafebot:GetValue() == true then
-                        pCmd:SetSideMove(200)
-                        end
-                    -- If we are allowed to crit
-                    if pWeapon:GetCritTokenBucket() <= 7.5 and mWswitchoptions:IsSelected("Auto-Crit-Refill") then
-                        pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
-                        if mWswitchoptions:IsSelected("AutoDT") and (warp.GetChargedTicks() == 0) then
-                            warp.TriggerCharge()
-                        end
-                    end
-
-                break
-            elseif cond_primary then
-                state = "slot1"
-                break
-            elseif cond_secodnary  then
-                state = "slot2"
+        end
+    elseif cond_Melee then
+        state = "slot3"
+        --SetViewAngles()
+        if walkbot:GetValue() then
+            pCmd:SetForwardMove(600)
+        end
+        if circlestrafebot:GetValue() then
+            pCmd:SetSideMove(200)
+        end
+        -- If we are allowed to crit
+        if pWeapon:GetCritTokenBucket() <= 7.5 and mWswitchoptions:IsSelected("Auto-Crit-Refill") then
+            pCmd:SetButtons(pCmd:GetButtons() | IN_ATTACK)--refill
+            if mWswitchoptions:IsSelected("AutoDT") and (warp.GetChargedTicks() == 0) then
+                --warp.TriggerCharge()
             end
         end
---[[command execution from weapon manager]]--
-client.Command(state, true)
+        break
+    elseif cond_primary then
+        state = "slot1"
+        print("crossbow")
+        break
+    elseif cond_secodnary then
+        state = "slot2"
+        print("medigun")
+        
+    end
+
+    if state then -- execute only if state is defined
+        client.Command(state, true)
+    end
 end
+
+--[[command execution from weapon manager]]--
+
+
 if not vPlayer then
     LocalPlayer.TriggerCharge()
 end
@@ -692,6 +722,12 @@ end
     end
     CheckTempOptions()
 end
+
+local numSamples = 10
+local radiusSamples = {}
+local radiusSum = 0
+local radiusAvg = 49
+
 
 
 local myfont = draw.CreateFont( "Verdana", 16, 800 ) -- Create a font for doDraw
@@ -823,19 +859,25 @@ end
     
         local players = entities.FindByClass("CTFPlayer")
         local pLocal = entities.GetLocalPlayer()
-        if pLocal:IsAlive() and Rangecircle:GetValue() == true then
           local screenPos = client.WorldToScreen(pLocal:GetAbsOrigin())
           if screenPos ~= nil then
             draw.SetFont(myfont)
             draw.Color(255, 255, 255, 255)
-
-            str1 = tostring(relativeSpeed)
-
+--[[
+            if estime ~= nil and estime ~= 0 then
+                str1 = string.format("%.2f", estime)
+            else
+                str1 = "0" -- or whatever message you want to display if relativeSpeed is zero or nil
+            end
+--[[
             draw.Text(screenPos[1], screenPos[2], str1)
-        
             local x, y = screenPos[1], screenPos[2]
-            local radius = (relativeSpeed % 20.2 + 69)
-            local segments = 9
+            local maxRadius = 100
+            local radius = (relativeSpeed % 20.2 * 2 + 49) -- calculate radius
+            if radius > maxRadius then -- if radius is greater than maxRadius
+                radius = maxRadius -- set radius to maxRadius
+            end
+            local segments = 7
             local prevx, prevy = x + radius, y
         
             for i = 1, segments do
@@ -845,7 +887,7 @@ end
               draw.Line(math.floor(prevx), math.floor(prevy), math.floor(newx), math.floor(newy))
               prevx, prevy = newx, newy
             end
-            end
+            ]]--
         end
     end
 end
