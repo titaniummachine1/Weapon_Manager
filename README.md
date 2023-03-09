@@ -1,5 +1,6 @@
 # Weapon Menager
 A modified misc_tools.lua with a working auto-weapon switch, and more. It's intended for use with medbots, vaccinator, and crossbow, and new modules will be added in the future.
+[![Visitors](https://visitor-badge.glitch.me/badge?page_id=titaniummachine1/Weapon_Manager)](https://github.com/your_username/your_reponame)
 
 
 [![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/titaniummachine1/Weapon_Manager/blob/main/a_Weapon_Menager.lua) - [![GitHub Downloads](https://img.shields.io/github/downloads/titaniummachine1/Weapon_Manager/total.svg)](https://github.com/titaniummachine1/Weapon_Manager/releases)
