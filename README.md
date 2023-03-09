@@ -3,7 +3,7 @@ A modified misc_tools.lua with a working auto-weapon switch, and more. It's inte
 [![Beta Visitors](https://visitor-badge.glitch.me/badge?page_id=titaniummachine1/Weapon_Manager/tree/Beta)](https://github.com/titaniummachine1/Weapon_Manager/tree/Beta)
 
 
-[![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/titaniummachine1/Weapon_Manager/blob/beta/a_Weapon_Menager.lua) - [![GitHub Downloads](https://img.shields.io/github/downloads/titaniummachine1/Weapon_Manager/total.svg)](https://github.com/titaniummachine1/Weapon_Manager/releases)
+[![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download lua")](https://github.com/titaniummachine1/Weapon_Manager/blob/beta/a_Weapon_Menager.lua) - [![GitHub Downloads](https://img.shields.io/github/downloads/titaniummachine1/Weapon_Manager/Beta/total.svg)](https://github.com/titaniummachine1/Weapon_Manager/releases)
 
 
 
