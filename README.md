@@ -29,7 +29,7 @@ How To run Lmaobox Beta:
 - [Changes](https://github.com/titaniummachine1/Weapon_Manager/compare/v2.0.0-stable...v2.1.0-unstable-beta)
 
 ## images
-
+![Weapon Manager Beta Screenshot](https://github.com/titaniummachine1/Weapon_Manager/releases/tag/v2.2.1-beta)
 ![Weapon Manager Screenshot](https://i.imgur.com/bVMorQp.png)
 
 
